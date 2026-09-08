@@ -2,11 +2,20 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import LoginForm from "@/components/LoginForm";
+import { getSafeCallbackPath } from "@/lib/origin";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const params = await searchParams;
+  const rawCallbackUrl = typeof params.callbackUrl === "string" ? params.callbackUrl : undefined;
+  const callbackUrl = await getSafeCallbackPath(rawCallbackUrl);
+
   const session = await auth();
   if (session?.user) {
-    redirect("/dashboard");
+    redirect(callbackUrl ?? "/dashboard");
   }
 
   return (
@@ -17,7 +26,7 @@ export default async function LoginPage() {
           Suis le stock de filaments de ta P2S.
         </p>
         <div className="mt-6">
-          <LoginForm />
+          <LoginForm callbackUrl={callbackUrl} />
         </div>
         <p className="mt-6 text-center text-sm text-slate-500">
           Pas encore de compte ?{" "}

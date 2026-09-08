@@ -3,11 +3,12 @@
 import { useActionState } from "react";
 import { loginUser, type ActionState } from "@/app/actions/auth";
 
-export default function LoginForm() {
+export default function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(loginUser, undefined);
 
   return (
     <form action={formAction} className="space-y-4">
+      {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Email

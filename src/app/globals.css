@@ -23,3 +23,24 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Impression d'étiquette : n'imprime que le bloc #print-label (QR code
+   d'une bobine), le reste de la page (nav, formulaires...) est masqué. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-label,
+  #print-label * {
+    visibility: visible;
+  }
+  #print-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

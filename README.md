@@ -16,7 +16,8 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
   - Emplacement (AMS slot, boîte sèche, étagère...) et imprimante associée.
   - Statut (active / vide / archivée) et notes libres.
 - **Historique d'utilisation** : chaque impression peut être loggée (poids utilisé + note), ce qui décrémente automatiquement le poids restant.
-- **Tableau de bord** avec statistiques (bobines actives, kilos restants, nombre de bobines en stock bas, valeur totale du stock).
+- **Tableau de bord** avec statistiques (bobines actives, kilos restants, nombre de bobines en stock bas, valeur totale du stock), et **recherche + filtres** (texte libre, matière, statut, stock bas uniquement) et **tri** (poids restant, couleur, ajout récent) sur la liste des bobines.
+- **QR code par bobine** : chaque fiche bobine (`/dashboard/spools/[id]`) génère un QR code à imprimer et coller sur la bobine, qui pointe directement vers sa fiche — pratique pour la retrouver depuis son téléphone. Si on scanne le code sans être connecté, on est redirigé vers la connexion puis renvoyé automatiquement sur la bonne fiche.
 
 ## Stack technique
 

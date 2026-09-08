@@ -1,13 +1,16 @@
+import QRCode from "qrcode";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Spool } from "@/models/Spool";
 import { serializeSpool } from "@/lib/serialize";
+import { getOrigin } from "@/lib/origin";
 import { updateSpool } from "@/app/actions/spools";
 import SpoolForm from "@/components/SpoolForm";
 import UsageForm from "@/components/UsageForm";
 import DeleteSpoolButton from "@/components/DeleteSpoolButton";
 import SpoolCard from "@/components/SpoolCard";
+import SpoolQrLabel from "@/components/SpoolQrLabel";
 
 export const dynamic = "force-dynamic";
 
@@ -32,13 +35,19 @@ export default async function SpoolDetailPage(props: PageProps<"/dashboard/spool
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
+  const origin = await getOrigin();
+  const spoolUrl = `${origin}/dashboard/spools/${spool.id}`;
+  const qrDataUrl = await QRCode.toDataURL(spoolUrl, { margin: 1, width: 360 });
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
-      <div>
+      <div className="no-print">
         <SpoolCard spool={spool} />
       </div>
 
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6">
+      <SpoolQrLabel spool={spool} qrDataUrl={qrDataUrl} url={spoolUrl} />
+
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6 no-print">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Enregistrer une utilisation</h2>
         <p className="mt-1 text-sm text-slate-500">
           Déduit automatiquement le poids restant de la bobine.
@@ -65,7 +74,7 @@ export default async function SpoolDetailPage(props: PageProps<"/dashboard/spool
         )}
       </section>
 
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6 no-print">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Détails de la bobine</h2>
           <DeleteSpoolButton spoolId={spool.id} />

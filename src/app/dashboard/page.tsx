@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Spool } from "@/models/Spool";
 import { serializeSpool } from "@/lib/serialize";
-import SpoolCard from "@/components/SpoolCard";
 import StatsBar from "@/components/StatsBar";
+import DashboardSpoolList from "@/components/DashboardSpoolList";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +18,6 @@ export default async function DashboardPage() {
   await connectToDatabase();
   const docs = await Spool.find({ owner: session.user.id }).sort({ status: 1, remainingWeight: 1 }).lean();
   const spools = docs.map(serializeSpool);
-
-  const active = spools.filter((s) => s.status !== "archivee");
-  const archived = spools.filter((s) => s.status === "archivee");
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -56,26 +53,9 @@ export default async function DashboardPage() {
           </Link>
         </div>
       ) : (
-        <>
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {active.map((spool) => (
-              <SpoolCard key={spool.id} spool={spool} href={`/dashboard/spools/${spool.id}`} />
-            ))}
-          </div>
-
-          {archived.length > 0 && (
-            <div className="mt-10">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Bobines archivées
-              </h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 opacity-70">
-                {archived.map((spool) => (
-                  <SpoolCard key={spool.id} spool={spool} href={`/dashboard/spools/${spool.id}`} />
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+        <div className="mt-8">
+          <DashboardSpoolList spools={spools} />
+        </div>
       )}
     </div>
   );

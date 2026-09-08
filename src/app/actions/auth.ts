@@ -6,6 +6,7 @@ import { AuthError } from "next-auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { signIn } from "@/auth";
+import { getSafeCallbackPath } from "@/lib/origin";
 
 const RegisterSchema = z.object({
   name: z.string().trim().min(2, "Le nom doit faire au moins 2 caractères.").max(60),
@@ -65,11 +66,16 @@ export async function loginUser(_prevState: ActionState, formData: FormData): Pr
     return { error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
   }
 
+  // Si on arrive ici depuis une page protégée (ex: fiche bobine ouverte via
+  // son QR code alors qu'on n'était pas connecté), on revient sur cette page
+  // après connexion plutôt que sur le dashboard par défaut.
+  const callbackPath = await getSafeCallbackPath(formData.get("callbackUrl")?.toString());
+
   try {
     await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo: "/dashboard",
+      redirectTo: callbackPath ?? "/dashboard",
     });
   } catch (err) {
     if (err instanceof AuthError) {

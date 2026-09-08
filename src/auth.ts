@@ -41,6 +41,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    // Sans ce callback, le proxy (src/proxy.ts) laisse passer toutes les
+    // requêtes (comportement par défaut de NextAuth v5) : la protection des
+    // routes reposait alors uniquement sur les `redirect("/login")` internes
+    // à chaque page, qui ne connaissent pas l'URL d'origine. En le définissant,
+    // le proxy bloque réellement les routes protégées et redirige vers
+    // /login?callbackUrl=<url d'origine> — utile par ex. quand on scanne le
+    // QR code d'une bobine sans être connecté : on revient dessus après login.
+    authorized({ auth: session }) {
+      return !!session?.user;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
