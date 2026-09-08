@@ -11,6 +11,9 @@ const UserSchema = new Schema(
       trim: true,
     },
     passwordHash: { type: String, required: true },
+    // Image encodée en base64 (data URI), redimensionnée côté client avant envoi.
+    avatar: { type: String },
+    printerModel: { type: String, trim: true, maxlength: 60 },
   },
   { timestamps: true }
 );

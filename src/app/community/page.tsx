@@ -6,6 +6,7 @@ import { User } from "@/models/User";
 import { Spool } from "@/models/Spool";
 import mongoose from "mongoose";
 import type { MemberSummary } from "@/lib/types";
+import Avatar from "@/components/Avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function CommunityPage() {
 
   await connectToDatabase();
 
-  const users = await User.find({}).select("name email").lean();
+  const users = await User.find({}).select("name email avatar printerModel").lean();
 
   const aggregation = await Spool.aggregate([
     {
@@ -54,6 +55,8 @@ export default async function CommunityPage() {
     return {
       id: u._id.toString(),
       name: u.name,
+      avatar: u.avatar,
+      printerModel: u.printerModel,
       spoolCount: stats?.spoolCount ?? 0,
       totalRemainingWeight: stats?.totalRemainingWeight ?? 0,
       lowStockCount: stats?.lowStockCount ?? 0,
@@ -79,17 +82,23 @@ export default async function CommunityPage() {
               href={isSelf ? "/dashboard" : `/community/${m.id}`}
               className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 shadow-sm transition hover:shadow-md"
             >
-              <div className="flex items-center justify-between">
-                <p className="font-semibold text-slate-900 dark:text-white">
-                  {m.name} {isSelf && <span className="text-xs font-normal text-orange-600">(moi)</span>}
-                </p>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar name={m.name} src={m.avatar} size={40} />
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-slate-900 dark:text-white">
+                      {m.name} {isSelf && <span className="text-xs font-normal text-orange-600">(moi)</span>}
+                    </p>
+                    {m.printerModel && <p className="truncate text-xs text-slate-500">🖨️ {m.printerModel}</p>}
+                  </div>
+                </div>
                 {m.lowStockCount > 0 && (
-                  <span className="rounded-full bg-amber-100 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                  <span className="shrink-0 rounded-full bg-amber-100 dark:bg-amber-950 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
                     {m.lowStockCount} stock bas
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-2 text-sm text-slate-500">
                 {m.spoolCount} bobine{m.spoolCount !== 1 ? "s" : ""} ·{" "}
                 {(m.totalRemainingWeight / 1000).toFixed(2)} kg restants
               </p>

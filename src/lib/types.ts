@@ -40,6 +40,8 @@ export type SpoolView = {
 export type MemberSummary = {
   id: string;
   name: string;
+  avatar?: string;
+  printerModel?: string;
   spoolCount: number;
   totalRemainingWeight: number;
   lowStockCount: number;

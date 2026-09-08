@@ -5,6 +5,7 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
 ## Fonctionnalités
 
 - **Comptes utilisateurs** : inscription / connexion par email + mot de passe (NextAuth v5, mots de passe hashés avec bcrypt).
+- **Profil** (`/profile`) : photo de profil (recadrée et compressée automatiquement côté navigateur, stockée en base64 dans MongoDB — aucun service externe requis), nom/pseudo, modèle d'imprimante, changement de mot de passe.
 - **Inventaire personnel** : chaque compte gère ses propres bobines, invisibles/non modifiables par les autres.
 - **Communauté** : page listant tous les comptes créés, avec un aperçu (nombre de bobines, stock restant, alertes) et une vue détaillée en lecture seule de l'inventaire de chacun.
 - **Suivi détaillé par bobine** :

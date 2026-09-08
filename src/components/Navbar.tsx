@@ -1,8 +1,18 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
+import { connectToDatabase } from "@/lib/mongodb";
+import { User } from "@/models/User";
+import Avatar from "@/components/Avatar";
 
 export default async function Navbar() {
   const session = await auth();
+
+  let avatar: string | undefined;
+  if (session?.user?.id) {
+    await connectToDatabase();
+    const user = await User.findById(session.user.id).select("avatar").lean<{ avatar?: string }>();
+    avatar = user?.avatar;
+  }
 
   return (
     <header className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur sticky top-0 z-10">
@@ -21,9 +31,10 @@ export default async function Navbar() {
               <Link href="/community" className="text-slate-600 hover:text-orange-600 dark:text-slate-300">
                 Communauté
               </Link>
-              <span className="hidden text-slate-400 sm:inline">
-                {session.user.name}
-              </span>
+              <Link href="/profile" className="flex items-center gap-2 text-slate-600 hover:text-orange-600 dark:text-slate-300">
+                <Avatar name={session.user.name ?? "?"} src={avatar} size={28} />
+                <span className="hidden sm:inline">{session.user.name}</span>
+              </Link>
               <form
                 action={async () => {
                   "use server";

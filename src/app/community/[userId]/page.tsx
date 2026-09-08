@@ -7,6 +7,7 @@ import { Spool } from "@/models/Spool";
 import { serializeSpool } from "@/lib/serialize";
 import SpoolCard from "@/components/SpoolCard";
 import StatsBar from "@/components/StatsBar";
+import Avatar from "@/components/Avatar";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function MemberInventoryPage(props: PageProps<"/community/[
 
   await connectToDatabase();
 
-  const member = await User.findById(userId).select("name").lean();
+  const member = await User.findById(userId).select("name avatar printerModel").lean();
   if (!member) {
     notFound();
   }
@@ -40,11 +41,17 @@ export default async function MemberInventoryPage(props: PageProps<"/community/[
         ← Retour à la communauté
       </Link>
 
-      <div className="mt-2 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-          Inventaire de {member.name}
-        </h1>
-        <span className="rounded-full bg-slate-200 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <Avatar name={member.name} src={member.avatar} size={44} />
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              Inventaire de {member.name}
+            </h1>
+            {member.printerModel && <p className="text-sm text-slate-500">🖨️ {member.printerModel}</p>}
+          </div>
+        </div>
+        <span className="shrink-0 rounded-full bg-slate-200 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300">
           Lecture seule
         </span>
       </div>
