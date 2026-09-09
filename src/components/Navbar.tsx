@@ -31,6 +31,9 @@ export default async function Navbar() {
               <Link href="/community" className="text-slate-600 hover:text-orange-600 dark:text-slate-300">
                 Communauté
               </Link>
+              <Link href="/dashboard/printer" className="text-slate-600 hover:text-orange-600 dark:text-slate-300">
+                Imprimante
+              </Link>
               <Link href="/profile" className="flex items-center gap-2 text-slate-600 hover:text-orange-600 dark:text-slate-300">
                 <Avatar name={session.user.name ?? "?"} src={avatar} size={28} />
                 <span className="hidden sm:inline">{session.user.name}</span>

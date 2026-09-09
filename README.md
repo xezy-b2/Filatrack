@@ -18,6 +18,8 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
 - **Historique d'utilisation** : chaque impression peut être loggée (poids utilisé + note), ce qui décrémente automatiquement le poids restant.
 - **Tableau de bord** avec statistiques (bobines actives, kilos restants, nombre de bobines en stock bas, valeur totale du stock), et **recherche + filtres** (texte libre, matière, statut, stock bas uniquement) et **tri** (poids restant, couleur, ajout récent) sur la liste des bobines.
 - **QR code par bobine** : chaque fiche bobine (`/dashboard/spools/[id]`) génère un QR code à imprimer et coller sur la bobine, qui pointe directement vers sa fiche — pratique pour la retrouver depuis son téléphone. Si on scanne le code sans être connecté, on est redirigé vers la connexion puis renvoyé automatiquement sur la bonne fiche.
+- **Badges** (`/profile`) : une quinzaine d'achievements débloqués au fil de l'usage (première bobine, kilos imprimés, matières variées, bobine vidée jusqu'au bout, ancienneté du compte...). Une fois gagné, un badge n'est jamais retiré.
+- **Synchro automatique AMS (Bambu Lab)** : voir `/dashboard/printer` — permet, via l'app desktop (pont MQTT local vers l'imprimante), de mettre à jour tout seul le poids restant des bobines chargées dans l'AMS après chaque impression, sans logging manuel. Authentifié par clé API personnelle (générable/révocable sur `/profile`) plutôt que par la session du site, puisque la synchro provient d'un programme local et non d'un navigateur.
 
 ## Stack technique
 
@@ -93,20 +95,43 @@ Si tu utilises Atlas, dans **Network Access**, autorise les connexions depuis `0
 ```
 src/
   app/
-    actions/        # Server Actions (inscription, connexion, CRUD bobines)
+    actions/        # Server Actions (inscription, connexion, CRUD bobines, imprimante...)
     api/auth/        # Route NextAuth
-    dashboard/       # Inventaire personnel + formulaires
+    api/printer-sync/# Endpoint appelé par l'app desktop (synchro AMS)
+    dashboard/       # Inventaire personnel + formulaires + page Imprimante
     community/       # Annuaire des membres + vue lecture seule
     login/ register/ # Pages d'authentification
   components/        # Composants UI réutilisables
-  lib/                # Connexion MongoDB, constantes, types, sérialisation
-  models/             # Schémas Mongoose (User, Spool)
+  lib/                # Connexion MongoDB, constantes, types, sérialisation, badges
+  models/             # Schémas Mongoose (User, Spool, Printer)
   auth.ts             # Configuration NextAuth v5
   proxy.ts            # Protection des routes privées (ex-middleware)
 ```
+
+## API de synchro imprimante (`POST /api/printer-sync`)
+
+Utilisée par l'app desktop (pont MQTT local vers la P2S), jamais par un navigateur. Authentification par clé API (générée sur `/profile`) plutôt que par session :
+
+```
+POST /api/printer-sync
+Authorization: Bearer <clé API>
+Content-Type: application/json
+
+{
+  "deviceId": "<numéro de série de l'imprimante>",
+  "slots": [
+    { "index": 0, "remainPercent": 87.4 },
+    { "index": 1, "remainPercent": 42.0 }
+  ]
+}
+```
+
+Le serveur ne journalise une utilisation que si `remainPercent` a baissé depuis le dernier appel connu pour ce slot (une valeur qui remonte indique un changement physique de bobine, pas un usage), et seulement pour les slots associés à une bobine via `/dashboard/printer`.
 
 ## Notes de sécurité
 
 - Les mots de passe sont hashés avec bcrypt (jamais stockés en clair).
 - Toute mutation (créer/modifier/supprimer une bobine) vérifie côté serveur que l'utilisateur connecté est bien le propriétaire de la bobine.
 - Les inventaires des autres membres ne sont accessibles qu'en lecture (aucune route ne permet de modifier les bobines d'un autre compte).
+- La clé API (synchro imprimante) n'est jamais stockée en clair côté serveur : seul un hash SHA-256 est conservé, et la clé n'est affichée qu'une fois, au moment de sa génération.
+- Le code d'accès LAN de l'imprimante ne transite jamais par ce site : il reste uniquement dans la configuration locale de l'app desktop, utilisé pour la connexion MQTT directe au réseau local.

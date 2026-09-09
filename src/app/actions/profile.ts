@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
+import { syncBadges } from "@/lib/badges";
 
 export type ActionState = { error?: string; success?: string } | undefined;
 
@@ -65,6 +66,7 @@ export async function updateProfile(_prevState: ActionState, formData: FormData)
   }
 
   await user.save();
+  await syncBadges(userId);
 
   revalidatePath("/profile");
   revalidatePath("/community");

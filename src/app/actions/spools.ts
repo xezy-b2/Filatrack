@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Spool } from "@/models/Spool";
 import { MATERIALS, DIAMETERS, STATUSES } from "@/lib/constants";
+import { syncBadges } from "@/lib/badges";
 
 export type ActionState = { error?: string } | undefined;
 
@@ -89,6 +90,7 @@ export async function createSpool(_prevState: ActionState, formData: FormData): 
 
   await connectToDatabase();
   const spool = await Spool.create({ ...parsed.data, owner: userId });
+  await syncBadges(userId);
 
   revalidatePath("/dashboard");
   redirect(`/dashboard/spools/${spool._id}`);
@@ -154,6 +156,7 @@ export async function logUsage(spoolId: string, _prevState: ActionState, formDat
     spool.status = "vide";
   }
   await spool.save();
+  await syncBadges(userId);
 
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/spools/${spoolId}`);
@@ -163,6 +166,7 @@ export async function setSpoolStatus(spoolId: string, status: (typeof STATUSES)[
   const userId = await requireUserId();
   await connectToDatabase();
   await Spool.updateOne({ _id: spoolId, owner: userId }, { $set: { status } });
+  await syncBadges(userId);
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/spools/${spoolId}`);
 }
