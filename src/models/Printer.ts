@@ -13,6 +13,20 @@ const PrinterSlotSchema = new Schema(
   { _id: false }
 );
 
+// Dernier statut d'impression connu, remonté par l'app desktop à chaque
+// changement notable (état, avancement, fichier). Purement informatif —
+// n'affecte jamais le calcul du poids restant (basé sur `remain` des slots).
+const CurrentPrintSchema = new Schema(
+  {
+    state: { type: String, enum: ["idle", "running", "paused", "finished", "failed"], default: "idle" },
+    progress: { type: Number, min: 0, max: 100 },
+    fileName: { type: String, trim: true, maxlength: 200 },
+    remainingMinutes: { type: Number, min: 0 },
+    updatedAt: { type: Date },
+  },
+  { _id: false }
+);
+
 const PrinterSchema = new Schema(
   {
     owner: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
@@ -27,6 +41,7 @@ const PrinterSchema = new Schema(
     ipAddress: { type: String, trim: true, maxlength: 60 },
     slots: { type: [PrinterSlotSchema], default: [] },
     lastSyncAt: { type: Date },
+    currentPrint: { type: CurrentPrintSchema },
   },
   { timestamps: true }
 );

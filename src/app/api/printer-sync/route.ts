@@ -25,9 +25,19 @@ const SlotUpdateSchema = z.object({
   trayColor: z.string().max(20).optional(),
 });
 
+// Statut d'impression en cours, remonté en plus des slots (purement
+// informatif pour le tableau de bord — n'influence jamais le calcul du poids).
+const PrintStatusSchema = z.object({
+  state: z.enum(["idle", "running", "paused", "finished", "failed"]),
+  progress: z.number().min(0).max(100).optional(),
+  fileName: z.string().max(200).optional(),
+  remainingMinutes: z.number().min(0).optional(),
+});
+
 const PayloadSchema = z.object({
   deviceId: z.string().trim().min(1).max(60),
-  slots: z.array(SlotUpdateSchema).min(1).max(16),
+  slots: z.array(SlotUpdateSchema).max(16).default([]),
+  printStatus: PrintStatusSchema.optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -93,6 +103,9 @@ export async function POST(request: NextRequest) {
   }
 
   printer.lastSyncAt = new Date();
+  if (parsed.data.printStatus) {
+    printer.currentPrint = { ...parsed.data.printStatus, updatedAt: new Date() };
+  }
   await printer.save();
 
   if (updatedSlots > 0) {

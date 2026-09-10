@@ -8,6 +8,9 @@ import { serializeSpool } from "@/lib/serialize";
 import SpoolCard from "@/components/SpoolCard";
 import StatsBar from "@/components/StatsBar";
 import Avatar from "@/components/Avatar";
+import BadgeGrid from "@/components/BadgeGrid";
+import MemberProfileTabs from "@/components/MemberProfileTabs";
+import { BADGES } from "@/lib/badges";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +28,7 @@ export default async function MemberInventoryPage(props: PageProps<"/community/[
 
   await connectToDatabase();
 
-  const member = await User.findById(userId).select("name avatar printerModel").lean();
+  const member = await User.findById(userId).select("name avatar printerModel badges createdAt").lean();
   if (!member) {
     notFound();
   }
@@ -34,6 +37,52 @@ export default async function MemberInventoryPage(props: PageProps<"/community/[
     .sort({ remainingWeight: 1 })
     .lean();
   const spools = docs.map(serializeSpool);
+  const earnedBadges = member.badges ?? [];
+  const joinedAt = member.createdAt ? new Date(member.createdAt) : null;
+
+  const spoolsContent =
+    spools.length === 0 ? (
+      <p className="py-6 text-center text-slate-500">Aucune bobine active pour ce membre.</p>
+    ) : (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {spools.map((spool) => (
+          <SpoolCard key={spool.id} spool={spool} />
+        ))}
+      </div>
+    );
+
+  const profileContent = (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6">
+        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs font-medium uppercase text-slate-400">Imprimante</dt>
+            <dd className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
+              {member.printerModel || "Non renseignée"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase text-slate-400">Membre depuis</dt>
+            <dd className="mt-0.5 text-sm text-slate-700 dark:text-slate-300">
+              {joinedAt ? joinedAt.toLocaleDateString("fr-FR") : "—"}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Badges</h2>
+          <p className="text-sm text-slate-500">
+            {earnedBadges.length} / {BADGES.length}
+          </p>
+        </div>
+        <div className="mt-4">
+          <BadgeGrid earned={earnedBadges} />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -60,15 +109,7 @@ export default async function MemberInventoryPage(props: PageProps<"/community/[
         <StatsBar spools={spools} />
       </div>
 
-      {spools.length === 0 ? (
-        <p className="mt-10 text-center text-slate-500">Aucune bobine active pour ce membre.</p>
-      ) : (
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {spools.map((spool) => (
-            <SpoolCard key={spool.id} spool={spool} />
-          ))}
-        </div>
-      )}
+      <MemberProfileTabs spoolsContent={spoolsContent} profileContent={profileContent} />
     </div>
   );
 }

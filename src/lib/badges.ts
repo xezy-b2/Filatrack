@@ -4,6 +4,7 @@ import { User } from "@/models/User";
 import { Printer } from "@/models/Printer";
 
 export type BadgeId =
+  | "og"
   | "premiere-bobine"
   | "petite-collection"
   | "grande-collection"
@@ -27,8 +28,19 @@ export type BadgeDef = {
   description: string;
 };
 
+// Date limite d'inscription pour obtenir le badge "OG" (voir plus bas) :
+// tout compte créé avant cette date le garde pour toujours, personne d'autre
+// ne peut plus l'obtenir après.
+export const OG_BADGE_DEADLINE = new Date("2026-09-15T23:59:59.999Z");
+
 // L'ordre ici est l'ordre d'affichage sur la page profil.
 export const BADGES: BadgeDef[] = [
+  {
+    id: "og",
+    icon: "🌟",
+    label: "OG",
+    description: `Inscrit·e avant le 15 septembre 2026 — un des tout premiers membres de FilaTrack.`,
+  },
   {
     id: "premiere-bobine",
     icon: "🧵",
@@ -136,10 +148,12 @@ type Stats = {
   hasPrinterModel: boolean;
   accountAgeDays: number;
   hasPrinterConfigured: boolean;
+  createdAt: Date | null;
 };
 
 function computeEarned(stats: Stats): BadgeId[] {
   const earned: BadgeId[] = [];
+  if (stats.createdAt && stats.createdAt.getTime() <= OG_BADGE_DEADLINE.getTime()) earned.push("og");
   if (stats.totalSpools >= 1) earned.push("premiere-bobine");
   if (stats.totalSpools >= 5) earned.push("petite-collection");
   if (stats.totalSpools >= 20) earned.push("grande-collection");
@@ -203,6 +217,7 @@ export async function syncBadges(userId: string): Promise<BadgeId[]> {
     hasPrinterModel: !!user.printerModel,
     accountAgeDays,
     hasPrinterConfigured: printerCount > 0,
+    createdAt: user.createdAt ? new Date(user.createdAt) : null,
   };
 
   const alreadyEarned = new Set((user.badges ?? []).map((b: { id: string }) => b.id));

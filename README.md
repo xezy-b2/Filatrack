@@ -7,7 +7,7 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
 - **Comptes utilisateurs** : inscription / connexion par email + mot de passe (NextAuth v5, mots de passe hashés avec bcrypt).
 - **Profil** (`/profile`) : photo de profil (recadrée et compressée automatiquement côté navigateur, stockée en base64 dans MongoDB — aucun service externe requis), nom/pseudo, modèle d'imprimante, changement de mot de passe.
 - **Inventaire personnel** : chaque compte gère ses propres bobines, invisibles/non modifiables par les autres.
-- **Communauté** : page listant tous les comptes créés, avec un aperçu (nombre de bobines, stock restant, alertes) et une vue détaillée en lecture seule de l'inventaire de chacun.
+- **Communauté** : page listant tous les comptes créés, avec un aperçu (nombre de bobines, stock restant, alertes) et une fiche détaillée en lecture seule pour chaque membre, avec deux onglets : **Ses bobines** (inventaire) et **Profil** (badges, imprimante, date d'inscription).
 - **Suivi détaillé par bobine** :
   - Marque, matière (PLA, PETG, ABS, ASA, TPU, Nylon, PC, supports...), couleur (nom + nuance), diamètre, tag RFID.
   - Poids initial, poids de la bobine vide, poids restant, seuil d'alerte "stock bas".
@@ -16,10 +16,10 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
   - Emplacement (AMS slot, boîte sèche, étagère...) et imprimante associée.
   - Statut (active / vide / archivée) et notes libres.
 - **Historique d'utilisation** : chaque impression peut être loggée (poids utilisé + note), ce qui décrémente automatiquement le poids restant.
-- **Tableau de bord** avec statistiques (bobines actives, kilos restants, nombre de bobines en stock bas, valeur totale du stock), et **recherche + filtres** (texte libre, matière, statut, stock bas uniquement) et **tri** (poids restant, couleur, ajout récent) sur la liste des bobines.
+- **Tableau de bord** avec statistiques (bobines actives, kilos restants, nombre de bobines en stock bas, valeur totale du stock), et **recherche + filtres** (texte libre, matière, statut, stock bas uniquement) et **tri** (poids restant, couleur, ajout récent) sur la liste des bobines. Si une imprimante Bambu Lab est connectée et qu'une impression est en cours, un bandeau **"Impression en cours"** (avancement %, fichier, temps restant) apparaît en haut du tableau de bord.
 - **QR code par bobine** : chaque fiche bobine (`/dashboard/spools/[id]`) génère un QR code à imprimer et coller sur la bobine, qui pointe directement vers sa fiche — pratique pour la retrouver depuis son téléphone. Si on scanne le code sans être connecté, on est redirigé vers la connexion puis renvoyé automatiquement sur la bonne fiche.
-- **Badges** (`/profile`) : une quinzaine d'achievements débloqués au fil de l'usage (première bobine, kilos imprimés, matières variées, bobine vidée jusqu'au bout, ancienneté du compte...). Une fois gagné, un badge n'est jamais retiré.
-- **Synchro automatique AMS (Bambu Lab)** : voir `/dashboard/printer` — permet, via l'app desktop (pont MQTT local vers l'imprimante), de mettre à jour tout seul le poids restant des bobines chargées dans l'AMS après chaque impression, sans logging manuel. Authentifié par clé API personnelle (générable/révocable sur `/profile`) plutôt que par la session du site, puisque la synchro provient d'un programme local et non d'un navigateur.
+- **Badges** (`/profile`, et visibles dans l'onglet Profil de chaque membre en communauté) : une quinzaine d'achievements débloqués au fil de l'usage (première bobine, kilos imprimés, matières variées, bobine vidée jusqu'au bout, ancienneté du compte...), plus un badge **"OG"** réservé aux comptes créés avant le 15 septembre 2026 (plus personne ne peut l'obtenir après cette date). Une fois gagné, un badge n'est jamais retiré.
+- **Synchro automatique AMS (Bambu Lab)** : voir `/dashboard/printer` — permet, via l'app desktop (pont MQTT local vers l'imprimante), de mettre à jour tout seul le poids restant des bobines chargées dans l'AMS après chaque impression, sans logging manuel, et de faire remonter le statut d'impression en cours (voir ci-dessus). Authentifié par clé API personnelle (générable/révocable sur `/profile`) plutôt que par la session du site, puisque la synchro provient d'un programme local et non d'un navigateur.
 
 ## Stack technique
 
@@ -122,11 +122,19 @@ Content-Type: application/json
   "slots": [
     { "index": 0, "remainPercent": 87.4 },
     { "index": 1, "remainPercent": 42.0 }
-  ]
+  ],
+  "printStatus": {
+    "state": "running",
+    "progress": 63.5,
+    "fileName": "benchy.3mf",
+    "remainingMinutes": 42
+  }
 }
 ```
 
 Le serveur ne journalise une utilisation que si `remainPercent` a baissé depuis le dernier appel connu pour ce slot (une valeur qui remonte indique un changement physique de bobine, pas un usage), et seulement pour les slots associés à une bobine via `/dashboard/printer`.
+
+`printStatus` est optionnel et purement informatif (affiché sur le tableau de bord tant que `state` vaut `running` ou `paused`) : il n'a aucune influence sur le calcul du poids restant, qui repose uniquement sur `slots`. `state` vaut `idle`, `running`, `paused`, `finished` ou `failed`.
 
 ## Notes de sécurité
 
