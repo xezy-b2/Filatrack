@@ -23,7 +23,6 @@ export type BadgeId =
 
 export type BadgeDef = {
   id: BadgeId;
-  icon: string;
   label: string;
   description: string;
 };
@@ -37,97 +36,81 @@ export const OG_BADGE_DEADLINE = new Date("2026-09-15T23:59:59.999Z");
 export const BADGES: BadgeDef[] = [
   {
     id: "og",
-    icon: "🌟",
     label: "OG",
     description: `Inscrit·e avant le 15 septembre 2026 — un des tout premiers membres de FilaTrack.`,
   },
   {
     id: "premiere-bobine",
-    icon: "🧵",
     label: "Premier pas",
     description: "Ajouter sa première bobine.",
   },
   {
     id: "petite-collection",
-    icon: "📦",
     label: "Petite collection",
     description: "Avoir enregistré 5 bobines (au total, même utilisées ou archivées).",
   },
   {
     id: "grande-collection",
-    icon: "🏬",
     label: "Grande collection",
     description: "Avoir enregistré 20 bobines.",
   },
   {
     id: "arc-en-ciel",
-    icon: "🌈",
     label: "Arc-en-ciel",
     description: "Avoir au moins 5 couleurs différentes en stock.",
   },
   {
     id: "multi-matieres",
-    icon: "🧪",
     label: "Multi-matières",
     description: "Avoir utilisé au moins 5 matières différentes (PLA, PETG, ABS...).",
   },
   {
     id: "premier-log",
-    icon: "✍️",
     label: "Premier log",
     description: "Enregistrer sa première utilisation de filament.",
   },
   {
     id: "1kg",
-    icon: "🥉",
     label: "1 kg imprimé",
     description: "Avoir cumulé 1 kg de filament utilisé.",
   },
   {
     id: "5kg",
-    icon: "🥈",
     label: "5 kg imprimés",
     description: "Avoir cumulé 5 kg de filament utilisé.",
   },
   {
     id: "10kg",
-    icon: "🥇",
     label: "10 kg imprimés",
     description: "Avoir cumulé 10 kg de filament utilisé. Légende.",
   },
   {
     id: "jusquau-bout",
-    icon: "🫙",
     label: "Jusqu'au bout",
     description: "Avoir vidé complètement une bobine.",
   },
   {
     id: "archiviste",
-    icon: "🗄️",
     label: "Archiviste",
     description: "Avoir archivé une bobine.",
   },
   {
     id: "portrait",
-    icon: "🖼️",
     label: "Portrait",
     description: "Ajouter une photo de profil.",
   },
   {
     id: "bien-equipe",
-    icon: "🖨️",
     label: "Bien équipé",
     description: "Renseigner le modèle de son imprimante.",
   },
   {
     id: "veteran",
-    icon: "🎖️",
     label: "Vétéran",
     description: "Avoir un compte FilaTrack depuis plus d'un an.",
   },
   {
     id: "automatise",
-    icon: "🤖",
     label: "Automatisé",
     description: "Connecter une imprimante Bambu Lab (AMS) pour un suivi automatique du poids.",
   },

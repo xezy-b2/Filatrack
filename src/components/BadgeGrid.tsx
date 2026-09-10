@@ -1,4 +1,5 @@
 import { BADGES } from "@/lib/badges";
+import BadgeIcon from "@/components/BadgeIcon";
 
 type EarnedBadge = { id: string; earnedAt: string | Date };
 
@@ -24,7 +25,9 @@ export default function BadgeGrid({ earned }: { earned: EarnedBadge[] }) {
                 : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40"
             }`}
           >
-            <div className={`text-2xl ${isEarned ? "" : "opacity-30 grayscale"}`}>{badge.icon}</div>
+            <div className={`flex justify-center ${isEarned ? "" : "opacity-30 grayscale"}`}>
+              <BadgeIcon id={badge.id} className="h-8 w-8" />
+            </div>
             <p
               className={`mt-1 text-xs font-semibold ${
                 isEarned ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-600"
