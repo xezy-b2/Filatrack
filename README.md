@@ -16,10 +16,13 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
   - Emplacement (AMS slot, boîte sèche, étagère...) et imprimante associée.
   - Statut (active / vide / archivée) et notes libres.
 - **Historique d'utilisation** : chaque impression peut être loggée (poids utilisé + note), ce qui décrémente automatiquement le poids restant.
-- **Tableau de bord** avec statistiques (bobines actives, kilos restants, nombre de bobines en stock bas, valeur totale du stock), et **recherche + filtres** (texte libre, matière, statut, stock bas uniquement) et **tri** (poids restant, couleur, ajout récent) sur la liste des bobines. Si une imprimante Bambu Lab est connectée et qu'une impression est en cours, un bandeau **"Impression en cours"** (avancement %, fichier, temps restant) apparaît en haut du tableau de bord.
+- **Tableau de bord** avec statistiques (bobines actives, kilos restants, nombre de bobines en stock bas, valeur totale du stock), et **recherche + filtres** (texte libre, matière, statut, stock bas uniquement) et **tri** (poids restant, couleur, ajout récent) sur la liste des bobines.
 - **QR code par bobine** : chaque fiche bobine (`/dashboard/spools/[id]`) génère un QR code à imprimer et coller sur la bobine, qui pointe directement vers sa fiche — pratique pour la retrouver depuis son téléphone. Si on scanne le code sans être connecté, on est redirigé vers la connexion puis renvoyé automatiquement sur la bonne fiche.
 - **Badges** (`/profile`, et visibles dans l'onglet Profil de chaque membre en communauté) : une quinzaine d'achievements débloqués au fil de l'usage (première bobine, kilos imprimés, matières variées, bobine vidée jusqu'au bout, ancienneté du compte...), plus un badge **"OG"** réservé aux comptes créés avant le 15 septembre 2026 (plus personne ne peut l'obtenir après cette date). Une fois gagné, un badge n'est jamais retiré. Jusqu'à 3 badges peuvent être mis en avant sous le pseudo (à choisir sur `/settings`).
-- **Synchro automatique AMS (Bambu Lab)** : voir `/dashboard/printer` — permet, via l'app desktop (pont MQTT local vers l'imprimante), de mettre à jour tout seul le poids restant des bobines chargées dans l'AMS après chaque impression, sans logging manuel, et de faire remonter le statut d'impression en cours (voir ci-dessus). Authentifié par clé API personnelle (générable/révocable sur `/settings`) plutôt que par la session du site, puisque la synchro provient d'un programme local et non d'un navigateur.
+- **Notifications** (icône 🔔 dans la barre de navigation) : un badge de fin d'impression (réussie ou échouée) et un badge débloqué génèrent chacun une notification, listées par ordre chronologique avec un compteur de non-lues. "Aucune notification." s'affiche quand la liste est vide. Pas de push temps réel : le panneau se rafraîchit tout seul en arrière-plan toutes les 30 secondes.
+- **Synchro automatique AMS (Bambu Lab)** : voir `/dashboard/printer` — permet, via l'app desktop (pont MQTT local vers l'imprimante), de mettre à jour tout seul le poids restant des bobines chargées dans l'AMS après chaque impression, sans logging manuel, et de faire remonter le statut d'impression en cours. Authentifié par clé API personnelle (générable/révocable sur `/settings`) plutôt que par la session du site, puisque la synchro provient d'un programme local et non d'un navigateur.
+- **Auto-remplissage RFID** : les bobines Bambu Lab officielles ont une puce RFID lue automatiquement par l'AMS (matière + couleur). Quand un slot contient une bobine détectée par l'AMS mais non encore associée à une fiche FilaTrack, une suggestion apparaît sur `/dashboard/printer` avec un lien "Créer cette bobine" qui pré-remplit le formulaire (matière et couleur) pour éviter de les ressaisir à la main.
+- **Suivi et contrôle de l'impression en cours** (`/dashboard/printer`) : tant qu'une impression tourne ou est en pause, un bandeau affiche l'avancement (%), le fichier et le temps restant, avec des boutons **Pause / Reprendre / Arrêter**. La commande est déposée côté site puis récupérée par l'app desktop (sondage toutes les ~8 secondes) qui la transmet à l'imprimante en MQTT — un délai de quelques secondes entre le clic et l'exécution est donc normal. Il n'y a pas de bouton "démarrer une nouvelle impression" : cela demanderait de parcourir les fichiers stockés sur l'imprimante elle-même, hors du périmètre de FilaTrack.
 
 ## Stack technique
 
@@ -95,17 +98,17 @@ Si tu utilises Atlas, dans **Network Access**, autorise les connexions depuis `0
 ```
 src/
   app/
-    actions/        # Server Actions (inscription, connexion, CRUD bobines, imprimante...)
+    actions/        # Server Actions (inscription, connexion, CRUD bobines, imprimante, notifications...)
     api/auth/        # Route NextAuth
-    api/printer-sync/# Endpoint appelé par l'app desktop (synchro AMS)
+    api/printer-sync/# Endpoints appelés par l'app desktop (synchro AMS + commandes pause/reprise/arrêt)
     dashboard/       # Inventaire personnel + formulaires + page Imprimante
     community/       # Annuaire des membres + vue lecture seule
     profile/         # Page de profil (vue, lecture seule)
     settings/        # Réglages du compte (formulaires)
     login/ register/ # Pages d'authentification
   components/        # Composants UI réutilisables
-  lib/                # Connexion MongoDB, constantes, types, sérialisation, badges
-  models/             # Schémas Mongoose (User, Spool, Printer)
+  lib/                # Connexion MongoDB, constantes, types, sérialisation, badges, notifications
+  models/             # Schémas Mongoose (User, Spool, Printer, Notification)
   auth.ts             # Configuration NextAuth v5
   proxy.ts            # Protection des routes privées (ex-middleware)
 ```
@@ -122,7 +125,7 @@ Content-Type: application/json
 {
   "deviceId": "<numéro de série de l'imprimante>",
   "slots": [
-    { "index": 0, "remainPercent": 87.4 },
+    { "index": 0, "remainPercent": 87.4, "trayType": "PLA", "trayColor": "1A8CFFFF" },
     { "index": 1, "remainPercent": 42.0 }
   ],
   "printStatus": {
@@ -136,7 +139,20 @@ Content-Type: application/json
 
 Le serveur ne journalise une utilisation que si `remainPercent` a baissé depuis le dernier appel connu pour ce slot (une valeur qui remonte indique un changement physique de bobine, pas un usage), et seulement pour les slots associés à une bobine via `/dashboard/printer`.
 
-`printStatus` est optionnel et purement informatif (affiché sur le tableau de bord tant que `state` vaut `running` ou `paused`) : il n'a aucune influence sur le calcul du poids restant, qui repose uniquement sur `slots`. `state` vaut `idle`, `running`, `paused`, `finished` ou `failed`.
+`trayType` et `trayColor` sont optionnels : ce sont les infos matière/couleur lues par la puce RFID des bobines Bambu Lab officielles (champs `tray_type`/`tray_color` du rapport MQTT de l'AMS). Elles sont enregistrées sur le slot même s'il n'est associé à aucune bobine, pour alimenter les suggestions d'auto-remplissage sur `/dashboard/printer`.
+
+`printStatus` est optionnel et purement informatif (affiché sur `/dashboard/printer` tant que `state` vaut `running` ou `paused`) : il n'a aucune influence sur le calcul du poids restant, qui repose uniquement sur `slots`. `state` vaut `idle`, `running`, `paused`, `finished` ou `failed`. Un passage à `finished` ou `failed` déclenche une notification pour l'utilisateur.
+
+## API de commande imprimante (`GET /api/printer-sync/command`)
+
+Sondée par l'app desktop toutes les ~8 secondes (pendant qu'elle est connectée en MQTT à l'imprimante) pour savoir si une commande pause/reprise/arrêt a été demandée depuis le site (boutons sur `/dashboard/printer`) :
+
+```
+GET /api/printer-sync/command?deviceId=<numéro de série>
+Authorization: Bearer <clé API>
+```
+
+Réponse : `{ "command": "pause" | "resume" | "stop" | null }`. La commande est retirée (consommée) dès qu'elle est renvoyée par cet endpoint — au pire une commande peut être perdue si l'app desktop plante juste après l'avoir récupérée, ce qui est un compromis acceptable pour cet usage. C'est l'app desktop, et elle seule, qui publie ensuite la commande en MQTT à l'imprimante : le site ne peut pas la joindre directement (réseau local de l'utilisateur, non routable depuis son hébergement).
 
 ## Notes de sécurité
 

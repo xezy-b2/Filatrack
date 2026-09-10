@@ -9,6 +9,14 @@ const PrinterSlotSchema = new Schema(
     index: { type: Number, required: true, min: 0 },
     spool: { type: Schema.Types.ObjectId, ref: "Spool" },
     lastRemainPercent: { type: Number, min: 0, max: 100 },
+    // Dernière matière/couleur lues via la puce RFID de l'AMS pour ce slot,
+    // qu'il soit associé à une bobine ou non — sert à suggérer la création
+    // d'une bobine pré-remplie quand une bobine Bambu Lab non enregistrée y
+    // est détectée (voir /dashboard/printer). Purement indicatif, jamais
+    // utilisé pour le calcul du poids restant.
+    detectedType: { type: String, trim: true, maxlength: 60 },
+    detectedColor: { type: String, trim: true, maxlength: 20 },
+    detectedAt: { type: Date },
   },
   { _id: false }
 );
@@ -42,6 +50,12 @@ const PrinterSchema = new Schema(
     slots: { type: [PrinterSlotSchema], default: [] },
     lastSyncAt: { type: Date },
     currentPrint: { type: CurrentPrintSchema },
+    // Commande de contrôle d'impression (pause/reprise/arrêt) en attente de
+    // livraison à l'app desktop, qui la récupère par polling puis la publie
+    // en MQTT vers l'imprimante. Consommée (remise à undefined) dès qu'elle
+    // est récupérée — au pire une commande peut être perdue si l'app plante
+    // juste après l'avoir récupérée, ce qui est acceptable pour cet usage.
+    pendingCommand: { type: String, enum: ["pause", "resume", "stop"] },
   },
   { timestamps: true }
 );

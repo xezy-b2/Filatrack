@@ -3,6 +3,7 @@ import { Spool } from "@/models/Spool";
 import { User } from "@/models/User";
 import { Printer } from "@/models/Printer";
 import { BADGES, BADGE_MAP, OG_BADGE_DEADLINE, type BadgeId, type BadgeDef } from "@/lib/badgeDefs";
+import { createNotification } from "@/lib/notify";
 
 // Ce module contient la logique serveur (accès base de données) pour
 // calculer et débloquer les badges. Les définitions statiques (id, libellé,
@@ -103,6 +104,15 @@ export async function syncBadges(userId: string): Promise<BadgeId[]> {
     await User.updateOne(
       { _id: userId },
       { $push: { badges: { $each: newlyEarned.map((id) => ({ id, earnedAt: new Date() })) } } }
+    );
+    await Promise.all(
+      newlyEarned.map((id) =>
+        createNotification(userId, {
+          type: "badge",
+          title: `Badge débloqué : ${BADGE_MAP[id].label}`,
+          body: BADGE_MAP[id].description,
+        })
+      )
     );
   }
 

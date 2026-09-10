@@ -3,11 +3,9 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Spool } from "@/models/Spool";
-import { Printer } from "@/models/Printer";
 import { serializeSpool } from "@/lib/serialize";
 import StatsBar from "@/components/StatsBar";
 import DashboardSpoolList from "@/components/DashboardSpoolList";
-import PrintStatusCard, { type PrinterPrintStatus } from "@/components/PrintStatusCard";
 
 export const dynamic = "force-dynamic";
 
@@ -20,22 +18,6 @@ export default async function DashboardPage() {
   await connectToDatabase();
   const docs = await Spool.find({ owner: session.user.id }).sort({ status: 1, remainingWeight: 1 }).lean();
   const spools = docs.map(serializeSpool);
-
-  const printerDocs = await Printer.find({ owner: session.user.id }).select("name currentPrint").lean();
-  const activePrinters: PrinterPrintStatus[] = printerDocs
-    .map((p) => ({
-      id: p._id.toString(),
-      name: p.name,
-      currentPrint: p.currentPrint
-        ? {
-            state: p.currentPrint.state,
-            progress: p.currentPrint.progress,
-            fileName: p.currentPrint.fileName,
-            remainingMinutes: p.currentPrint.remainingMinutes,
-          }
-        : null,
-    }))
-    .filter((p) => p.currentPrint && ["running", "paused"].includes(p.currentPrint.state));
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -53,12 +35,6 @@ export default async function DashboardPage() {
           + Ajouter une bobine
         </Link>
       </div>
-
-      {activePrinters.length > 0 && (
-        <div className="mt-6">
-          <PrintStatusCard printers={activePrinters} />
-        </div>
-      )}
 
       <div className="mt-6">
         <StatsBar spools={spools} />

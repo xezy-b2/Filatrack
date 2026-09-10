@@ -120,3 +120,28 @@ export async function revokeApiKey() {
   await User.updateOne({ _id: userId }, { $unset: { apiKeyHash: "" } });
   revalidatePath("/settings");
 }
+
+const PRINT_COMMANDS = ["pause", "resume", "stop"] as const;
+export type PrintCommand = (typeof PRINT_COMMANDS)[number];
+export type PrintCommandState = { error?: string } | undefined;
+
+// Dépose une commande de contrôle d'impression en attente pour cette
+// imprimante. L'app desktop la récupère par polling (voir
+// /api/printer-sync/command) puis la publie en MQTT vers l'imprimante — le
+// site ne parle jamais directement à l'imprimante, qui est sur le réseau
+// local de l'utilisateur.
+export async function sendPrinterCommand(printerId: string, command: PrintCommand): Promise<PrintCommandState> {
+  const userId = await requireUserId();
+
+  if (!PRINT_COMMANDS.includes(command)) {
+    return { error: "Commande invalide." };
+  }
+
+  await connectToDatabase();
+  const result = await Printer.updateOne({ _id: printerId, owner: userId }, { $set: { pendingCommand: command } });
+  if (result.matchedCount === 0) {
+    return { error: "Imprimante introuvable." };
+  }
+
+  return undefined;
+}

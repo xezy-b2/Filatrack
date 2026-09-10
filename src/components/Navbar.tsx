@@ -3,15 +3,22 @@ import { auth, signOut } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import Avatar from "@/components/Avatar";
+import NotificationBell from "@/components/NotificationBell";
+import { getNotifications } from "@/app/actions/notifications";
 
 export default async function Navbar() {
   const session = await auth();
 
   let avatar: string | undefined;
+  let notificationsData: Awaited<ReturnType<typeof getNotifications>> = { notifications: [], unreadCount: 0 };
   if (session?.user?.id) {
     await connectToDatabase();
-    const user = await User.findById(session.user.id).select("avatar").lean<{ avatar?: string }>();
+    const [user, notifications] = await Promise.all([
+      User.findById(session.user.id).select("avatar").lean<{ avatar?: string }>(),
+      getNotifications(),
+    ]);
     avatar = user?.avatar;
+    notificationsData = notifications;
   }
 
   return (
@@ -45,6 +52,10 @@ export default async function Navbar() {
               >
                 ⚙️
               </Link>
+              <NotificationBell
+                initialNotifications={notificationsData.notifications}
+                initialUnreadCount={notificationsData.unreadCount}
+              />
               <form
                 action={async () => {
                   "use server";

@@ -1,3 +1,5 @@
+import PrintControlButtons from "@/components/PrintControlButtons";
+
 export type PrinterPrintStatus = {
   id: string;
   name: string;
@@ -57,6 +59,7 @@ export default function PrintStatusCard({ printers }: { printers: PrinterPrintSt
               </div>
             )}
             {remaining && <p className="mt-1 text-xs text-slate-500">{remaining}</p>}
+            <PrintControlButtons printerId={p.id} state={print.state} />
           </div>
         );
       })}
