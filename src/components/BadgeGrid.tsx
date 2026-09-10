@@ -19,9 +19,9 @@ export default function BadgeGrid({ earned }: { earned: EarnedBadge[] }) {
                 ? `${badge.description} — débloqué le ${new Date(earnedAt).toLocaleDateString("fr-FR")}`
                 : `Verrouillé — ${badge.description}`
             }
-            className={`rounded-xl border p-3 text-center ${
+            className={`rounded-xl border p-3.5 text-center transition-transform duration-150 ${
               isEarned
-                ? "border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40"
+                ? "border-orange-300 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/40 shadow-sm hover:-translate-y-0.5 hover:shadow-md"
                 : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40"
             }`}
           >
