@@ -10,7 +10,7 @@ import { syncBadges } from "@/lib/badges";
 // Endpoint appelé par l'app desktop (pont MQTT local vers l'imprimante
 // Bambu Lab) pour synchroniser automatiquement le poids restant des bobines
 // à partir du % restant renvoyé par chaque slot de l'AMS. Authentifié par
-// clé API (Bearer token, voir /profile) plutôt que par la session NextAuth,
+// clé API (Bearer token, voir /settings) plutôt que par la session NextAuth,
 // puisque l'app desktop tourne côté client sans navigateur.
 //
 // Contrat attendu par le pont :

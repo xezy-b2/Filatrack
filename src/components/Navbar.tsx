@@ -38,6 +38,13 @@ export default async function Navbar() {
                 <Avatar name={session.user.name ?? "?"} src={avatar} size={28} />
                 <span className="hidden sm:inline">{session.user.name}</span>
               </Link>
+              <Link
+                href="/settings"
+                title="Paramètres"
+                className="text-slate-600 hover:text-orange-600 dark:text-slate-300"
+              >
+                ⚙️
+              </Link>
               <form
                 action={async () => {
                   "use server";

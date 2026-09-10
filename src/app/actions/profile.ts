@@ -69,6 +69,7 @@ export async function updateProfile(_prevState: ActionState, formData: FormData)
   await syncBadges(userId);
 
   revalidatePath("/profile");
+  revalidatePath("/settings");
   revalidatePath("/community");
   return { success: "Profil mis à jour." };
 }
@@ -139,6 +140,7 @@ export async function updateShowcaseBadges(_prevState: ActionState, formData: Fo
   await User.updateOne({ _id: userId }, { $set: { showcaseBadges } });
 
   revalidatePath("/profile");
+  revalidatePath("/settings");
   revalidatePath("/community");
   return { success: "Badges mis en avant enregistrés." };
 }

@@ -44,9 +44,9 @@ export default async function PrinterPage() {
         <ol className="mt-2 list-decimal space-y-1 pl-5">
           <li>Ajoute ton imprimante ici (numéro de série), puis assigne chaque slot de l&apos;AMS à une bobine.</li>
           <li>
-            Génère une clé API sur ta{" "}
-            <a href="/profile" className="text-orange-600 hover:underline">
-              page profil
+            Génère une clé API dans tes{" "}
+            <a href="/settings" className="text-orange-600 hover:underline">
+              paramètres
             </a>
             .
           </li>

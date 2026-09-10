@@ -110,7 +110,7 @@ export async function generateApiKey(_prevState: ApiKeyActionState, _formData: F
   await connectToDatabase();
   await User.updateOne({ _id: userId }, { $set: { apiKeyHash } });
 
-  revalidatePath("/profile");
+  revalidatePath("/settings");
   return { newKey: rawKey };
 }
 
@@ -118,5 +118,5 @@ export async function revokeApiKey() {
   const userId = await requireUserId();
   await connectToDatabase();
   await User.updateOne({ _id: userId }, { $unset: { apiKeyHash: "" } });
-  revalidatePath("/profile");
+  revalidatePath("/settings");
 }
