@@ -5,6 +5,8 @@ import { User, type UserDoc } from "@/models/User";
 import ProfileForm from "@/components/ProfileForm";
 import PasswordForm from "@/components/PasswordForm";
 import BadgeGrid from "@/components/BadgeGrid";
+import BadgeShowcase from "@/components/BadgeShowcase";
+import BadgeShowcaseForm from "@/components/BadgeShowcaseForm";
 import ApiKeySection from "@/components/ApiKeySection";
 import { syncBadges, BADGES } from "@/lib/badges";
 
@@ -30,6 +32,11 @@ export default async function ProfilePage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Mon profil</h1>
         <p className="mt-1 text-sm text-slate-500">{user.email}</p>
+        {user.showcaseBadges && user.showcaseBadges.length > 0 && (
+          <div className="mt-2">
+            <BadgeShowcase badgeIds={user.showcaseBadges} />
+          </div>
+        )}
       </div>
 
       <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6">
@@ -55,6 +62,15 @@ export default async function ProfilePage() {
         </p>
         <div className="mt-4">
           <BadgeGrid earned={user.badges ?? []} />
+        </div>
+        <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-4">
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Mise en avant</h3>
+          <div className="mt-2">
+            <BadgeShowcaseForm
+              earnedIds={(user.badges ?? []).map((b) => b.id)}
+              initialShowcase={user.showcaseBadges ?? []}
+            />
+          </div>
         </div>
       </section>
 

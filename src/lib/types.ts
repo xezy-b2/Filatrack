@@ -42,6 +42,7 @@ export type MemberSummary = {
   name: string;
   avatar?: string;
   printerModel?: string;
+  showcaseBadges: string[];
   spoolCount: number;
   totalRemainingWeight: number;
   lowStockCount: number;

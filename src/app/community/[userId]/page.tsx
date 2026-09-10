@@ -9,6 +9,7 @@ import SpoolCard from "@/components/SpoolCard";
 import StatsBar from "@/components/StatsBar";
 import Avatar from "@/components/Avatar";
 import BadgeGrid from "@/components/BadgeGrid";
+import BadgeShowcase from "@/components/BadgeShowcase";
 import MemberProfileTabs from "@/components/MemberProfileTabs";
 import { BADGES } from "@/lib/badges";
 
@@ -28,7 +29,9 @@ export default async function MemberInventoryPage(props: PageProps<"/community/[
 
   await connectToDatabase();
 
-  const member = await User.findById(userId).select("name avatar printerModel badges createdAt").lean();
+  const member = await User.findById(userId)
+    .select("name avatar printerModel badges createdAt showcaseBadges")
+    .lean();
   if (!member) {
     notFound();
   }
@@ -97,7 +100,12 @@ export default async function MemberInventoryPage(props: PageProps<"/community/[
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
               Inventaire de {member.name}
             </h1>
-            {member.printerModel && <p className="text-sm text-slate-500">🖨️ {member.printerModel}</p>}
+            {member.showcaseBadges && member.showcaseBadges.length > 0 && (
+              <div className="mt-1">
+                <BadgeShowcase badgeIds={member.showcaseBadges} />
+              </div>
+            )}
+            {member.printerModel && <p className="mt-1 text-sm text-slate-500">🖨️ {member.printerModel}</p>}
           </div>
         </div>
         <span className="shrink-0 rounded-full bg-slate-200 dark:bg-slate-800 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300">

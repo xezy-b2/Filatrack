@@ -7,6 +7,7 @@ import { Spool } from "@/models/Spool";
 import mongoose from "mongoose";
 import type { MemberSummary } from "@/lib/types";
 import Avatar from "@/components/Avatar";
+import BadgeShowcase from "@/components/BadgeShowcase";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export default async function CommunityPage() {
 
   await connectToDatabase();
 
-  const users = await User.find({}).select("name email avatar printerModel").lean();
+  const users = await User.find({}).select("name email avatar printerModel showcaseBadges").lean();
 
   const aggregation = await Spool.aggregate([
     {
@@ -57,6 +58,7 @@ export default async function CommunityPage() {
       name: u.name,
       avatar: u.avatar,
       printerModel: u.printerModel,
+      showcaseBadges: u.showcaseBadges ?? [],
       spoolCount: stats?.spoolCount ?? 0,
       totalRemainingWeight: stats?.totalRemainingWeight ?? 0,
       lowStockCount: stats?.lowStockCount ?? 0,
@@ -89,6 +91,11 @@ export default async function CommunityPage() {
                     <p className="truncate font-semibold text-slate-900 dark:text-white">
                       {m.name} {isSelf && <span className="text-xs font-normal text-orange-600">(moi)</span>}
                     </p>
+                    {m.showcaseBadges.length > 0 && (
+                      <div className="mt-0.5">
+                        <BadgeShowcase badgeIds={m.showcaseBadges} />
+                      </div>
+                    )}
                     {m.printerModel && <p className="truncate text-xs text-slate-500">🖨️ {m.printerModel}</p>}
                   </div>
                 </div>

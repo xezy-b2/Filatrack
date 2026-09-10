@@ -26,6 +26,11 @@ const UserSchema = new Schema(
     // n'est jamais retiré, même si les données qui l'ont déclenché changent
     // ensuite (ex: suppression d'une bobine).
     badges: { type: [EarnedBadgeSchema], default: [] },
+    // Jusqu'à 3 badges (parmi ceux déjà gagnés) choisis par l'utilisateur
+    // pour être affichés bien en évidence sous son pseudo (profil + fiche
+    // communauté) — une mise en avant, distincte de la liste complète des
+    // badges gagnés dans `badges`.
+    showcaseBadges: { type: [String], default: [] },
     // Hash SHA-256 (déterministe, donc indexable pour une recherche O(1) —
     // contrairement à bcrypt) de la clé API utilisée par l'app desktop
     // (pont MQTT Bambu Lab) pour synchroniser automatiquement le poids

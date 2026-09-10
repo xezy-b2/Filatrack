@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
-import { syncBadges } from "@/lib/badges";
+import { syncBadges, BADGE_MAP } from "@/lib/badges";
 
 export type ActionState = { error?: string; success?: string } | undefined;
 
@@ -112,4 +112,33 @@ export async function changePassword(_prevState: ActionState, formData: FormData
   await user.save();
 
   return { success: "Mot de passe mis à jour." };
+}
+
+const MAX_SHOWCASE_BADGES = 3;
+
+export async function updateShowcaseBadges(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const userId = await requireUserId();
+
+  const selected = formData.getAll("showcaseBadges").map(String);
+  if (selected.length > MAX_SHOWCASE_BADGES) {
+    return { error: `Choisis au maximum ${MAX_SHOWCASE_BADGES} badges à mettre en avant.` };
+  }
+  // On ne fait confiance qu'aux ids de badges qui existent réellement, et on
+  // vérifie côté serveur (pas seulement côté formulaire) qu'ils sont bien
+  // débloqués par ce compte avant de les épingler.
+  const validIds = selected.filter((id) => id in BADGE_MAP);
+
+  await connectToDatabase();
+  const user = await User.findById(userId).select("badges").lean();
+  if (!user) {
+    return { error: "Compte introuvable." };
+  }
+  const earnedIds = new Set((user.badges ?? []).map((b: { id: string }) => b.id));
+  const showcaseBadges = validIds.filter((id) => earnedIds.has(id));
+
+  await User.updateOne({ _id: userId }, { $set: { showcaseBadges } });
+
+  revalidatePath("/profile");
+  revalidatePath("/community");
+  return { success: "Badges mis en avant enregistrés." };
 }

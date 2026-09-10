@@ -1,4 +1,4 @@
-import { BADGES } from "@/lib/badges";
+import { BADGES } from "@/lib/badgeDefs";
 import BadgeIcon from "@/components/BadgeIcon";
 
 type EarnedBadge = { id: string; earnedAt: string | Date };

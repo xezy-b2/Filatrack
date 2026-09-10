@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { BadgeId } from "@/lib/badges";
+import type { BadgeId } from "@/lib/badgeDefs";
 
 // Icônes dessinées à la main (SVG), une par badge, plutôt que des emojis
 // Unicode — pour un rendu plus soigné et cohérent avec le thème orange/sombre
