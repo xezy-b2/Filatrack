@@ -23,6 +23,18 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
 - **Synchro automatique AMS (Bambu Lab)** : voir `/dashboard/printer` — permet, via l'app desktop (pont MQTT local vers l'imprimante), de mettre à jour tout seul le poids restant des bobines chargées dans l'AMS après chaque impression, sans logging manuel, et de faire remonter le statut d'impression en cours. Authentifié par clé API personnelle (générable/révocable sur `/settings`) plutôt que par la session du site, puisque la synchro provient d'un programme local et non d'un navigateur.
 - **Auto-remplissage RFID** : les bobines Bambu Lab officielles ont une puce RFID lue automatiquement par l'AMS (matière + couleur). Quand un slot contient une bobine détectée par l'AMS mais non encore associée à une fiche FilaTrack, une suggestion apparaît sur `/dashboard/printer` avec un lien "Créer cette bobine" qui pré-remplit le formulaire (matière et couleur) pour éviter de les ressaisir à la main.
 - **Suivi et contrôle de l'impression en cours** (`/dashboard/printer`) : tant qu'une impression tourne ou est en pause, un bandeau affiche l'avancement (%), le fichier et le temps restant, avec des boutons **Pause / Reprendre / Arrêter**. La commande est déposée côté site puis récupérée par l'app desktop (sondage toutes les ~8 secondes) qui la transmet à l'imprimante en MQTT — un délai de quelques secondes entre le clic et l'exécution est donc normal. Il n'y a pas de bouton "démarrer une nouvelle impression" : cela demanderait de parcourir les fichiers stockés sur l'imprimante elle-même, hors du périmètre de FilaTrack.
+- **Installable sur mobile (PWA)** : FilaTrack peut s'ajouter à l'écran d'accueil du téléphone (icône dédiée, ouverture en plein écran sans barre d'adresse), sans passer par l'App Store ni le Play Store — voir [Installer FilaTrack sur mobile](#installer-filatrack-sur-mobile) ci-dessous.
+
+## Installer FilaTrack sur mobile
+
+FilaTrack se comporte comme une "vraie" appli une fois ajouté à l'écran d'accueil (PWA — Progressive Web App), sans build ni App Store :
+
+- **Android (Chrome)** : ouvre le site, Chrome propose en général tout seul une bannière "Ajouter à l'écran d'accueil" ; sinon, menu ⋮ → **Ajouter à l'écran d'accueil**.
+- **iPhone/iPad (Safari)** : ouvre le site, bouton **Partager** (le carré avec la flèche) → **Sur l'écran d'accueil**.
+
+Chacun installe son propre raccourci depuis son propre téléphone et se connecte avec son propre compte — exactement comme sur le site normal, ça reste un compte par personne (voir Communauté ci-dessus). Rien à configurer côté serveur, aucune distribution publique : seul quelqu'un qui a l'URL du site peut l'installer, comme n'importe quelle page du site.
+
+Techniquement : `src/app/manifest.ts` (icônes, couleur de thème, mode plein écran) et `public/sw.js` (service worker minimal, juste là pour satisfaire la condition d'installabilité et afficher une petite page "hors ligne" à la place de l'erreur navigateur par défaut si le réseau coupe) — il ne met rien d'autre en cache, pour ne jamais afficher un stock ou un statut d'impression périmé. Les icônes sont regénérées avec `node scripts/generate-icons.mjs` si jamais le design doit changer.
 
 ## Stack technique
 

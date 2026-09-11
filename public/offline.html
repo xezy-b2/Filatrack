@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FilaTrack — Hors ligne</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        color: #0f172a;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        text-align: center;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #020617;
+          color: #f8fafc;
+        }
+      }
+      .card {
+        max-width: 360px;
+      }
+      .emoji {
+        font-size: 48px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 12px 0 8px;
+      }
+      p {
+        font-size: 14px;
+        color: #64748b;
+        line-height: 1.5;
+      }
+      button {
+        margin-top: 16px;
+        border: none;
+        border-radius: 8px;
+        background: #ea580c;
+        color: white;
+        font-weight: 600;
+        padding: 10px 20px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <p class="emoji">🧵</p>
+      <h1>Pas de connexion</h1>
+      <p>
+        FilaTrack a besoin d'internet pour accéder à ton inventaire (les données vivent sur le serveur, pas sur ton
+        téléphone). Reconnecte-toi puis réessaie.
+      </p>
+      <button onclick="location.reload()">Réessayer</button>
+    </div>
+  </body>
+</html>
