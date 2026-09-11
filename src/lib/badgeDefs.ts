@@ -6,6 +6,7 @@
 // (tentative d'inclure le driver Mongo dans le bundle navigateur).
 export type BadgeId =
   | "og"
+  | "fondateur"
   | "premiere-bobine"
   | "petite-collection"
   | "grande-collection"
@@ -33,8 +34,19 @@ export type BadgeDef = {
 // ne peut plus l'obtenir après.
 export const OG_BADGE_DEADLINE = new Date("2026-09-15T23:59:59.999Z");
 
+// Badge non gagnable : réservé au compte du créateur de FilaTrack,
+// identifié par email (voir FOUNDER_EMAIL plus bas et son utilisation dans
+// badges.ts). Contrairement aux autres badges, aucune action ni aucun
+// palier ne permet de l'obtenir.
+export const FOUNDER_EMAIL = "gorinthomas@outlook.fr";
+
 // L'ordre ici est l'ordre d'affichage sur la page profil.
 export const BADGES: BadgeDef[] = [
+  {
+    id: "fondateur",
+    label: "Fondateur",
+    description: "A créé et développé FilaTrack de A à Z.",
+  },
   {
     id: "og",
     label: "OG",

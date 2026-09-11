@@ -2,7 +2,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Spool } from "@/models/Spool";
 import { User } from "@/models/User";
 import { Printer } from "@/models/Printer";
-import { BADGES, BADGE_MAP, OG_BADGE_DEADLINE, type BadgeId, type BadgeDef } from "@/lib/badgeDefs";
+import { BADGES, BADGE_MAP, OG_BADGE_DEADLINE, FOUNDER_EMAIL, type BadgeId, type BadgeDef } from "@/lib/badgeDefs";
 import { createNotification } from "@/lib/notify";
 
 // Ce module contient la logique serveur (accès base de données) pour
@@ -26,10 +26,12 @@ type Stats = {
   accountAgeDays: number;
   hasPrinterConfigured: boolean;
   createdAt: Date | null;
+  email: string;
 };
 
 function computeEarned(stats: Stats): BadgeId[] {
   const earned: BadgeId[] = [];
+  if (stats.email === FOUNDER_EMAIL) earned.push("fondateur");
   if (stats.createdAt && stats.createdAt.getTime() <= OG_BADGE_DEADLINE.getTime()) earned.push("og");
   if (stats.totalSpools >= 1) earned.push("premiere-bobine");
   if (stats.totalSpools >= 5) earned.push("petite-collection");
@@ -63,7 +65,7 @@ export async function syncBadges(userId: string): Promise<BadgeId[]> {
   await connectToDatabase();
 
   const [user, spools, printerCount] = await Promise.all([
-    User.findById(userId).select("avatar printerModel badges createdAt").lean(),
+    User.findById(userId).select("email avatar printerModel badges createdAt").lean(),
     Spool.find({ owner: userId }).select("colorHex material status usageLog").lean(),
     Printer.countDocuments({ owner: userId }),
   ]);
@@ -95,6 +97,7 @@ export async function syncBadges(userId: string): Promise<BadgeId[]> {
     accountAgeDays,
     hasPrinterConfigured: printerCount > 0,
     createdAt: user.createdAt ? new Date(user.createdAt) : null,
+    email: user.email ?? "",
   };
 
   const alreadyEarned = new Set((user.badges ?? []).map((b: { id: string }) => b.id));

@@ -8,7 +8,7 @@
 //   node scripts/unlock-all-badges.mjs [email]
 //
 // Si aucun email n'est passé en argument, utilise EMAIL défini dans
-// l'environnement, ou à défaut xezy_4l@outlook.fr (compte du propriétaire
+// l'environnement, ou à défaut gorinthomas@outlook.fr (compte du propriétaire
 // du projet). Lit MONGODB_URI depuis l'environnement, ou depuis .env.local
 // à la racine du repo si présent (pas besoin du package dotenv).
 //
@@ -45,6 +45,11 @@ function loadDotEnvLocal() {
 // Tenue à jour à la main : doit rester synchronisée avec BADGES dans
 // src/lib/badgeDefs.ts (pas d'import direct possible, ce fichier est un
 // module TypeScript compilé par Next.js).
+//
+// "fondateur" est volontairement absent de cette liste : c'est un badge
+// d'identité (réservé au compte FOUNDER_EMAIL dans badgeDefs.ts), pas un
+// badge à débloquer. Le laisser ici permettrait de le donner à n'importe
+// quel autre compte via ce script, ce qui casserait l'exclusivité voulue.
 const ALL_BADGE_IDS = [
   "og",
   "premiere-bobine",
@@ -67,7 +72,7 @@ const ALL_BADGE_IDS = [
 async function main() {
   loadDotEnvLocal();
 
-  const email = process.argv[2] || process.env.EMAIL || "xezy_4l@outlook.fr";
+  const email = process.argv[2] || process.env.EMAIL || "gorinthomas@outlook.fr";
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     console.error(

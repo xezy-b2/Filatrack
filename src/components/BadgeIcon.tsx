@@ -26,6 +26,13 @@ function OutlineSvg({ children }: { children: ReactNode }) {
 }
 
 const ICONS: Record<BadgeId, ReactNode> = {
+  fondateur: (
+    <svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" fill="#7c3aed" />
+      <path d="M6 16.3l-1.3-7.1 3.8 2.6L12 6.6l3.5 5.2 3.8-2.6-1.3 7.1H6z" fill="#faf5ff" />
+      <rect x="6" y="16.3" width="12" height="1.8" rx="0.9" fill="#faf5ff" />
+    </svg>
+  ),
   og: (
     <svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true">
       <circle cx="12" cy="12" r="10" fill="#f59e0b" />
