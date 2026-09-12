@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import {
   getNotifications,
   markAllNotificationsRead,
+  deleteNotification,
+  deleteAllNotifications,
   type NotificationView,
 } from "@/app/actions/notifications";
 import { relativeTime } from "@/lib/relativeTime";
@@ -60,6 +62,28 @@ export default function NotificationBell({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  async function handleDelete(id: string) {
+    // Optimiste : retiré tout de suite de la liste locale, quitte à
+    // réapparaître au prochain rafraîchissement si la suppression échoue
+    // côté serveur (réseau...) — cas rare, pas grave pour une notification.
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    try {
+      await deleteNotification(id);
+    } catch {
+      // Pas grave, voir commentaire ci-dessus.
+    }
+  }
+
+  async function handleClearAll() {
+    setNotifications([]);
+    setUnreadCount(0);
+    try {
+      await deleteAllNotifications();
+    } catch {
+      // Pas grave, voir commentaire de handleDelete.
+    }
+  }
+
   async function toggle() {
     const next = !open;
     setOpen(next);
@@ -92,21 +116,44 @@ export default function NotificationBell({
 
       {open && (
         <div className="absolute right-0 z-20 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg">
-          <div className="border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white">
-            Notifications
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-4 py-2.5">
+            <span className="text-sm font-semibold text-slate-900 dark:text-white">Notifications</span>
+            {notifications.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="text-xs font-medium text-slate-500 hover:text-orange-600 dark:text-slate-400"
+              >
+                Tout effacer
+              </button>
+            )}
           </div>
           {notifications.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-slate-500">Aucune notification.</p>
           ) : (
             <ul className="max-h-96 divide-y divide-slate-100 dark:divide-slate-800 overflow-y-auto">
               {notifications.map((n) => (
-                <li key={n.id} className="px-4 py-3">
-                  <p className="flex items-start gap-2 text-sm font-medium text-slate-900 dark:text-white">
-                    <span className="shrink-0">{TYPE_ICONS[n.type] ?? "🔔"}</span>
-                    <span>{n.title}</span>
-                  </p>
-                  {n.body && <p className="mt-0.5 pl-6 text-xs text-slate-500">{n.body}</p>}
-                  <p className="mt-1 pl-6 text-[11px] text-slate-400">{relativeTime(n.createdAt)}</p>
+                <li key={n.id} className="group flex items-start gap-2 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-start gap-2 text-sm font-medium text-slate-900 dark:text-white">
+                      <span className="shrink-0">{TYPE_ICONS[n.type] ?? "🔔"}</span>
+                      <span>{n.title}</span>
+                    </p>
+                    {n.body && <p className="mt-0.5 pl-6 text-xs text-slate-500">{n.body}</p>}
+                    <p className="mt-1 pl-6 text-[11px] text-slate-400">{relativeTime(n.createdAt)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(n.id)}
+                    aria-label="Supprimer cette notification"
+                    title="Supprimer"
+                    className="shrink-0 rounded p-1 text-slate-300 hover:bg-slate-100 hover:text-slate-600 dark:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
                 </li>
               ))}
             </ul>

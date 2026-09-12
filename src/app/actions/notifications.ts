@@ -51,3 +51,17 @@ export async function markAllNotificationsRead(): Promise<void> {
   await connectToDatabase();
   await Notification.updateMany({ owner: userId, read: false }, { $set: { read: true } });
 }
+
+// Supprime une notification précise — filtrée par owner pour qu'on ne
+// puisse jamais supprimer celle de quelqu'un d'autre en devinant un id.
+export async function deleteNotification(id: string): Promise<void> {
+  const userId = await requireUserId();
+  await connectToDatabase();
+  await Notification.deleteOne({ _id: id, owner: userId });
+}
+
+export async function deleteAllNotifications(): Promise<void> {
+  const userId = await requireUserId();
+  await connectToDatabase();
+  await Notification.deleteMany({ owner: userId });
+}
