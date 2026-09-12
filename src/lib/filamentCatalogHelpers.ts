@@ -154,7 +154,7 @@ const BRAND_WEBSITES: Record<string, string> = {
   Recreus: "https://recreus.com",
   Verbatim: "https://www.verbatim.com",
   Creality: "https://www.creality.com",
-  Elegoo: "https://www.elegoo.com",
+  ELEGOO: "https://www.elegoo.com",
   Anycubic: "https://www.anycubic.com",
   "Atomic Filament": "https://atomicfilament.com",
 };
@@ -184,6 +184,175 @@ export function estimatedPrintTemps(material: string) {
 export function buildVendorSearchUrl(brand: string, title: string, material: string, sku?: string): string {
   const query = sku ? `${brand} ${title} ${material} "${sku}"` : `${brand} ${title} ${material} filament 3D`;
   return `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(query.trim())}`;
+}
+
+// Pages produit officielles pour quelques marques (Bambu Lab, Polymaker,
+// ELEGOO pour commencer) — recherchées et vérifiées une à une (chaque URL
+// chargée et confirmée) plutôt que devinées, mais RESTE une donnée externe
+// tenue à la main : les marques changent leurs pages de temps en temps, une
+// entrée peut devenir obsolète. La page pointe vers la LIGNE de produit
+// (ex. "PLA Basic"), pas vers la couleur précise de cette référence — la
+// couleur reste à sélectionner sur place, comme c'est déjà le cas chez ces
+// vendeurs (une page produit = un sélecteur de couleur, pas une URL par
+// couleur). "type: collection" signale une page catégorie plutôt qu'une
+// fiche produit unique quand aucune fiche dédiée n'existe.
+type ProductLineLink = { url: string; type: "product" | "collection" };
+
+function normalizeLineKey(value: string): string {
+  return value
+    .replace(/[™®©]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function buildLineMap(entries: Record<string, ProductLineLink>): Map<string, ProductLineLink> {
+  return new Map(Object.entries(entries).map(([line, link]) => [normalizeLineKey(line), link]));
+}
+
+const PRODUCT_LINE_URLS: Record<string, Map<string, ProductLineLink>> = {
+  "Bambu Lab": buildLineMap({
+    "PLA Basic": { url: "https://us.store.bambulab.com/products/pla-basic-filament", type: "product" },
+    "PLA Matte": { url: "https://us.store.bambulab.com/products/pla-matte", type: "product" },
+    "PETG HF": { url: "https://us.store.bambulab.com/products/petg-hf", type: "product" },
+    "PETG Basic": { url: "https://us.store.bambulab.com/products/petg-basic", type: "product" },
+    ABS: { url: "https://us.store.bambulab.com/products/abs-filament", type: "product" },
+    "PETG Translucent": { url: "https://us.store.bambulab.com/products/petg-translucent", type: "product" },
+    "PLA Silk+": { url: "https://us.store.bambulab.com/products/pla-silk-upgrade", type: "product" },
+    "PLA-CF": { url: "https://us.store.bambulab.com/products/pla-cf", type: "product" },
+    "PLA Translucent": { url: "https://us.store.bambulab.com/products/pla-translucent", type: "product" },
+    "PLA Silk Multi-Color": { url: "https://us.store.bambulab.com/products/pla-silk-multi-color", type: "product" },
+    "PLA Pure": { url: "https://us.store.bambulab.com/products/pla-pure", type: "product" },
+    "PLA Tough+": { url: "https://us.store.bambulab.com/products/pla-tough-upgrade", type: "product" },
+    "TPU 90A": { url: "https://us.store.bambulab.com/products/tpu-85a-tpu-90a", type: "product" },
+    "TPU for AMS": { url: "https://us.store.bambulab.com/products/tpu-for-ams", type: "product" },
+    "PA6-GF": { url: "https://us.store.bambulab.com/products/pa6-gf", type: "product" },
+    "ABS-GF": { url: "https://us.store.bambulab.com/products/abs-gf", type: "product" },
+    "PLA Basic Gradient": { url: "https://us.store.bambulab.com/products/pla-basic-gradient", type: "product" },
+    "PLA Sparkle": { url: "https://us.store.bambulab.com/products/pla-sparkle", type: "product" },
+    "PETG-CF": { url: "https://us.store.bambulab.com/products/petg-cf", type: "product" },
+    "PLA Wood": { url: "https://us.store.bambulab.com/products/pla-wood", type: "product" },
+    "TPU 95A HF": { url: "https://us.store.bambulab.com/products/tpu-95a-hf", type: "product" },
+    "TPU 85A": { url: "https://us.store.bambulab.com/products/tpu-85a-tpu-90a", type: "product" },
+    ASA: { url: "https://us.store.bambulab.com/products/asa-filament", type: "product" },
+    "PLA Metal": { url: "https://us.store.bambulab.com/products/pla-metal", type: "product" },
+    "PLA Glow": { url: "https://us.store.bambulab.com/products/pla-glow", type: "product" },
+    "PLA Basic - CMYK": { url: "https://us.store.bambulab.com/products/pla-cmyk-lithophane", type: "product" },
+    PC: { url: "https://us.store.bambulab.com/products/pc-filament", type: "product" },
+    "PLA Galaxy": { url: "https://us.store.bambulab.com/products/pla-galaxy", type: "product" },
+    "PC FR": { url: "https://us.store.bambulab.com/products/pc-fr", type: "product" },
+    "PLA Marble": { url: "https://us.store.bambulab.com/products/pla-marble", type: "product" },
+    "PLA Aero": { url: "https://us.store.bambulab.com/products/pla-aero", type: "product" },
+    "PA6-CF": { url: "https://us.store.bambulab.com/products/pa6-cf", type: "product" },
+    "Support for PLA/PETG": { url: "https://us.store.bambulab.com/products/support-for-pla-petg", type: "product" },
+    "PAHT-CF": { url: "https://us.store.bambulab.com/products/paht-cf", type: "product" },
+    "PPA-CF": { url: "https://us.store.bambulab.com/products/ppa-cf", type: "product" },
+    "PPS-CF": { url: "https://us.store.bambulab.com/products/pps-cf", type: "product" },
+    PVA: { url: "https://us.store.bambulab.com/products/pva", type: "product" },
+    "ASA-CF": { url: "https://us.store.bambulab.com/products/asa-cf", type: "product" },
+    "Support for PLA": { url: "https://us.store.bambulab.com/products/support-for-pla-new", type: "product" },
+    "ASA Aero": { url: "https://us.store.bambulab.com/products/asa-aero", type: "product" },
+    "Support for ABS": { url: "https://us.store.bambulab.com/products/support-for-abs", type: "product" },
+    "Support for PA/PET": { url: "https://us.store.bambulab.com/products/support-for-pa-pet", type: "product" },
+    "PET-CF": { url: "https://us.store.bambulab.com/products/pet-cf", type: "product" },
+  }),
+  Polymaker: buildLineMap({
+    "PolyLite™": { url: "https://shop.polymaker.com/products/polylite-pla", type: "product" },
+    "Panchroma™ PLA Refill": { url: "https://shop.polymaker.com/products/panchroma-pla-refill-filament", type: "product" },
+    "Panchroma™ Matte PLA": { url: "https://shop.polymaker.com/products/matte-pla", type: "product" },
+    ASA: { url: "https://shop.polymaker.com/products/asa", type: "product" },
+    PolyMax: { url: "https://polymaker.com/product/polymax-pla/", type: "product" },
+    PolyTerra: { url: "https://polymaker.com/product/polyterra-pla/", type: "product" },
+    "Fiberon™": { url: "https://shop.polymaker.com/collections/fiberon", type: "collection" },
+    "Panchroma™ Basic PLA": { url: "https://shop.polymaker.com/products/panchroma-pla", type: "product" },
+    "Panchroma™ CoPE": { url: "https://shop.polymaker.com/products/cope-filament", type: "product" },
+    PETG: { url: "https://shop.polymaker.com/products/petg", type: "product" },
+    "Panchroma™ Silk PLA": { url: "https://shop.polymaker.com/products/silk-pla", type: "product" },
+    "PolySmooth™": { url: "https://shop.polymaker.com/products/polysmooth", type: "product" },
+    "Panchroma™ Gradient Matte PLA": { url: "https://shop.polymaker.com/products/gradient-matte-pla", type: "product" },
+    "Panchroma™ Translucent PLA": { url: "https://shop.polymaker.com/products/translucent-pla", type: "product" },
+    "PolyFlex™ TPU95": { url: "https://shop.polymaker.com/products/polyflex-tpu95", type: "product" },
+    "Panchroma™ Dual Matte PLA": { url: "https://shop.polymaker.com/products/dual-matte-pla", type: "product" },
+    "Panchroma™ Starlight PLA": { url: "https://shop.polymaker.com/products/starlight-pla", type: "product" },
+    "PolySonic™ PLA": { url: "https://shop.polymaker.com/products/polysonic-pla", type: "product" },
+    "Panchroma™ Satin PLA": { url: "https://shop.polymaker.com/products/satin-pla", type: "product" },
+    "Panchroma™ Dual Silk PLA": { url: "https://shop.polymaker.com/products/dual-silk-pla", type: "product" },
+    "PolyFlex™ TPU90": { url: "https://shop.polymaker.com/products/polyflex-tpu90", type: "product" },
+    "PolyFlex™ TPU95-HF": { url: "https://shop.polymaker.com/products/polyflex-tpu95-hf", type: "product" },
+    "Panchroma™ Celestial PLA": { url: "https://shop.polymaker.com/products/celestial-pla", type: "product" },
+    "Panchroma™ Neon PLA": { url: "https://shop.polymaker.com/products/neon-pla", type: "product" },
+    "Panchroma™ Marble PLA": { url: "https://shop.polymaker.com/products/marble-pla", type: "product" },
+    "Panchroma™ Gradient Crystal": { url: "https://shop.polymaker.com/products/gradient-crystal-pla", type: "product" },
+    "Panchroma™ Luminous PLA": { url: "https://shop.polymaker.com/products/luminous-pla", type: "product" },
+    "Panchroma™ Gradient Silk": { url: "https://shop.polymaker.com/products/gradient-silk-pla", type: "product" },
+    "Panchroma™ Gradient Starlight": { url: "https://shop.polymaker.com/products/gradient-starlight-pla", type: "product" },
+    "Panchroma™ Galaxy PLA": { url: "https://shop.polymaker.com/products/galaxy-pla", type: "product" },
+    "PolyCast™": { url: "https://shop.polymaker.com/products/polycast", type: "product" },
+    "Panchroma™ Metallic PLA": { url: "https://shop.polymaker.com/products/metallic-pla", type: "product" },
+    "Panchroma™ Gradient Celestial": { url: "https://shop.polymaker.com/products/gradient-celestial-pla", type: "product" },
+    "PolyMide™ CoPA": { url: "https://shop.polymaker.com/products/polymide-copa", type: "product" },
+    "PC-ABS": { url: "https://shop.polymaker.com/products/polymaker-pc-abs", type: "product" },
+    "PolySupport™": { url: "https://shop.polymaker.com/products/polysupport", type: "product" },
+    "Panchroma™ Gradient Galaxy": { url: "https://shop.polymaker.com/products/gradient-galaxy-pla", type: "product" },
+    "Panchroma™ Glow PLA": { url: "https://shop.polymaker.com/products/glow-pla", type: "product" },
+    "PolyDissolve™ S1 (PVA)": { url: "https://shop.polymaker.com/products/polydissolve-s1", type: "product" },
+    "Panchroma™ UV Shift PLA": { url: "https://shop.polymaker.com/products/uv-shift-pla", type: "product" },
+    "Panchroma™ Gradient Translucent PLA": { url: "https://shop.polymaker.com/products/gradient-translucent-pla", type: "product" },
+    "Panchroma™ Dual Special PLA": { url: "https://shop.polymaker.com/products/dual-special-pla", type: "product" },
+    "Panchroma™ Gradient Neon": { url: "https://shop.polymaker.com/products/gradient-neon-pla", type: "product" },
+    "Panchroma™ Gradient Luminous Rainbow PLA": { url: "https://shop.polymaker.com/products/gradient-luminous-rainbow-pla", type: "product" },
+    "Panchroma™ Gradient Satin PLA": { url: "https://shop.polymaker.com/products/gradient-satin-pla", type: "product" },
+  }),
+  ELEGOO: buildLineMap({
+    "Silk PLA": { url: "https://us.elegoo.com/products/elegoo-silk-pla-filament-1-75mm-colored-1kg", type: "product" },
+    ABS: { url: "https://us.elegoo.com/products/abs-filament-1-75mm-colored-1kg", type: "product" },
+    "PLA Pro": { url: "https://us.elegoo.com/products/pla-pro-filament-1-75mm-colored-1kg", type: "product" },
+    "PETG Pro": { url: "https://us.elegoo.com/products/petg-pro-filament-1-75mm-colored-1kg", type: "product" },
+    "Rapid PETG": { url: "https://us.elegoo.com/products/rapid-petg-filament-1-75mm-colored-1kg", type: "product" },
+    "Rapid PLA+": { url: "https://us.elegoo.com/products/elegoo-rapid-pla-plus-filament-1-75mm-colored-1kg", type: "product" },
+    "Matte PLA": { url: "https://us.elegoo.com/products/pla-matte-filament-1-75mm-colored-1kg", type: "product" },
+    "Rapid TPU 95A": { url: "https://us.elegoo.com/products/rapid-tpu-filament-1-75mm-colored-1kg", type: "product" },
+    "PETG-CF": { url: "https://us.elegoo.com/products/petg-cf-filament-1-75mm-colored-1kg", type: "product" },
+    Galaxy: { url: "https://us.elegoo.com/products/galaxy-pla-filament-1-75mm-colored-1kg", type: "product" },
+    TPU: { url: "https://us.elegoo.com/products/tpu-filament-1-75mm-colored-1kg", type: "product" },
+    "PLA Marble": { url: "https://us.elegoo.com/products/pla-marble", type: "product" },
+  }),
+};
+
+// Renvoie la page produit officielle correspondant à la LIGNE du titre
+// donné (tout sauf la couleur), si la marque + la ligne sont dans la table
+// ci-dessus. undefined si la marque n'est pas encore couverte ou si la
+// ligne exacte n'a pas été trouvée/vérifiée.
+export function getProductPageUrl(brand: string, title: string): ProductLineLink | undefined {
+  const lineMap = PRODUCT_LINE_URLS[brand];
+  if (!lineMap) return undefined;
+  const line = deriveProductLine(title) ?? title;
+  return lineMap.get(normalizeLineKey(line));
+}
+
+// Choix du bouton "acheter" d'une fiche : lien direct vers la page produit
+// officielle quand on la connaît (marques couvertes ci-dessus), recherche
+// générique sinon. isDirect distingue les deux pour l'affichage (libellé,
+// éventuel avertissement "gamme complète" pour une page collection).
+export function getVendorLink(item: {
+  brand: string;
+  title: string;
+  material: string;
+  sku?: string;
+}): { url: string; label: string; isDirect: boolean } {
+  const direct = getProductPageUrl(item.brand, item.title);
+  if (direct) {
+    return {
+      url: direct.url,
+      label: direct.type === "product" ? `Voir chez ${item.brand} ↗` : `Voir la gamme chez ${item.brand} ↗`,
+      isDirect: true,
+    };
+  }
+  return {
+    url: buildVendorSearchUrl(item.brand, item.title, item.material, item.sku),
+    label: "Rechercher un vendeur ↗",
+    isDirect: false,
+  };
 }
 
 // Libellé FR du type de couleur tel que fourni par la source (identification

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   stripAlphaFromHex,
-  buildVendorSearchUrl,
+  getVendorLink,
   buildAddToInventoryHref,
 } from "@/lib/filamentCatalogHelpers";
 import type { FilamentCatalogItemView } from "@/lib/filamentCatalogQuery";
@@ -17,7 +17,7 @@ export type { FilamentCatalogItemView };
 export default function FilamentCard({ item }: { item: FilamentCatalogItemView }) {
   const [imageError, setImageError] = useState(false);
   const colorHex = stripAlphaFromHex(item.colorHex8);
-  const vendorSearchUrl = buildVendorSearchUrl(item.brand, item.title, item.material, item.sku);
+  const vendorLink = getVendorLink(item);
   const addHref = buildAddToInventoryHref(item);
   const detailHref = `/dashboard/filaments/${item.id}`;
 
@@ -55,12 +55,12 @@ export default function FilamentCard({ item }: { item: FilamentCatalogItemView }
 
         <div className="mt-auto flex flex-col gap-2 pt-2">
           <a
-            href={vendorSearchUrl}
+            href={vendorLink.url}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-center text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
           >
-            Rechercher un vendeur ↗
+            {vendorLink.label}
           </a>
           <Link
             href={addHref}

@@ -14,7 +14,7 @@ import {
   detectRecycled,
   getBrandWebsite,
   estimatedPrintTemps,
-  buildVendorSearchUrl,
+  getVendorLink,
   buildAddToInventoryHref,
 } from "@/lib/filamentCatalogHelpers";
 
@@ -53,7 +53,7 @@ export default async function FilamentDetailPage(props: PageProps<"/dashboard/fi
   const recycled = detectRecycled(item.title, item.material);
   const brandUrl = getBrandWebsite(item.brand);
   const temps = estimatedPrintTemps(item.material);
-  const vendorSearchUrl = buildVendorSearchUrl(item.brand, item.title, item.material, item.sku);
+  const vendorLink = getVendorLink(item);
   const addHref = buildAddToInventoryHref(item);
 
   return (
@@ -109,16 +109,19 @@ export default async function FilamentDetailPage(props: PageProps<"/dashboard/fi
             </div>
           )}
 
-          <p className="mt-4 text-xs text-slate-500">Il n&apos;y a pas de prix ni de paiement sur FilaTrack pour cette référence.</p>
+          <p className="mt-4 text-xs text-slate-500">
+            Il n&apos;y a pas de prix ni de paiement sur FilaTrack pour cette référence.
+            {vendorLink.isDirect && " Le lien mène à la page du produit chez le fabricant — la couleur reste à sélectionner sur place."}
+          </p>
 
           <div className="mt-auto flex flex-col gap-2 pt-6">
             <a
-              href={vendorSearchUrl}
+              href={vendorLink.url}
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-center text-sm font-medium text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
             >
-              Rechercher un vendeur ↗
+              {vendorLink.label}
             </a>
             <Link
               href={addHref}
