@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { AuthError } from "next-auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
-import { signIn } from "@/auth";
+import { signIn, signOut } from "@/auth";
 import { getSafeCallbackPath } from "@/lib/origin";
 
 const RegisterSchema = z.object({
@@ -86,4 +86,13 @@ export async function loginUser(_prevState: ActionState, formData: FormData): Pr
     }
     throw err;
   }
+}
+
+// Extraite ici (plutôt qu'en inline dans Navbar.tsx, comme c'était le cas
+// avant) pour pouvoir être importée aussi bien depuis le Server Component
+// Navbar que depuis NavbarMenu, son sous-composant client (menu burger
+// mobile) — une Server Action s'importe directement dans un Client
+// Component, contrairement au reste de ce que fait Navbar (accès DB...).
+export async function logout() {
+  await signOut({ redirectTo: "/" });
 }
