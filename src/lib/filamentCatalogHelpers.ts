@@ -87,8 +87,54 @@ export function deriveColorName(title: string): string {
 
 // Lien de recherche générique (pas un lien produit précis : la source ne
 // fournit ni prix ni vendeur) pour aider l'utilisateur à trouver où acheter
-// une référence donnée.
-export function buildVendorSearchUrl(brand: string, title: string, material: string): string {
-  const query = `${brand} ${title} ${material} filament 3D`.trim();
-  return `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(query)}`;
+// une référence donnée. Le SKU, quand il existe (absent sur ~2% des
+// références), est ajouté entre guillemets pour affiner sans remplacer le
+// nom du produit : c'est un code interne fabricant, pas forcément repris
+// tel quel sur la page d'un revendeur, donc une recherche dessus seul
+// risquerait de ne rien remonter.
+export function buildVendorSearchUrl(brand: string, title: string, material: string, sku?: string): string {
+  const query = sku ? `${brand} ${title} ${material} "${sku}"` : `${brand} ${title} ${material} filament 3D`;
+  return `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(query.trim())}`;
+}
+
+// Libellé FR du type de couleur tel que fourni par la source (identification
+// RFID/OpenTag) — "mono" est de très loin le cas le plus courant.
+export function colorTypeLabel(colorType?: string): string {
+  switch (colorType) {
+    case "mono":
+      return "Couleur unie";
+    case "multi":
+      return "Multicolore";
+    case "gradient":
+      return "Dégradé";
+    case "conic_gradient":
+      return "Dégradé conique";
+    default:
+      return "Non renseigné";
+  }
+}
+
+// Construit les query params de pré-remplissage de /dashboard/spools/new
+// depuis un item du catalogue — utilisé à la fois par la carte et par la
+// page de détail, pour ne garder qu'un seul endroit qui sait quels champs
+// sont transmis.
+export function buildAddToInventoryHref(item: {
+  brand: string;
+  title: string;
+  material: string;
+  colorHex8?: string;
+  weightGrams?: number;
+}): string {
+  const colorHex = stripAlphaFromHex(item.colorHex8);
+  const colorName = deriveColorName(item.title);
+  const appMaterial = mapCatalogMaterialToAppMaterial(item.material);
+
+  const params = new URLSearchParams({ source: "catalogue" });
+  params.set("brand", item.brand);
+  params.set("material", appMaterial);
+  params.set("colorName", colorName);
+  if (colorHex) params.set("colorHex", colorHex);
+  if (item.weightGrams) params.set("initialWeight", String(item.weightGrams));
+
+  return `/dashboard/spools/new?${params.toString()}`;
 }

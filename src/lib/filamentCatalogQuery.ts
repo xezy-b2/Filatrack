@@ -17,6 +17,7 @@ export type FilamentCatalogItemView = {
   brand: string;
   title: string;
   material: string;
+  sku?: string;
   weightGrams?: number;
   colorHex8?: string;
   image?: string;
@@ -66,6 +67,7 @@ export async function queryFilamentCatalog(
     brand: doc.brand as string,
     title: doc.title as string,
     material: doc.material as string,
+    sku: doc.sku as string | undefined,
     weightGrams: doc.weightGrams as number | undefined,
     colorHex8: doc.colorHex8 as string | undefined,
     image: doc.image as string | undefined,
