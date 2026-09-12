@@ -16,7 +16,6 @@ const LINKS = [
   { href: "/dashboard", label: "Mon inventaire" },
   { href: "/community", label: "Communauté" },
   { href: "/dashboard/printer", label: "Imprimante" },
-  { href: "/dashboard/filaments", label: "Filaments" },
 ];
 
 const desktopLinkClass = "hidden md:inline text-slate-600 hover:text-orange-600 dark:text-slate-300";
