@@ -4,9 +4,16 @@ import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { FilamentCatalogItem } from "@/models/FilamentCatalogItem";
 import FilamentDetailImage from "@/components/FilamentDetailImage";
+import CopyButton from "@/components/CopyButton";
 import {
   stripAlphaFromHex,
   colorTypeLabel,
+  deriveColorName,
+  deriveProductLine,
+  detectFinish,
+  detectRecycled,
+  getBrandWebsite,
+  estimatedPrintTemps,
   buildVendorSearchUrl,
   buildAddToInventoryHref,
 } from "@/lib/filamentCatalogHelpers";
@@ -40,6 +47,12 @@ export default async function FilamentDetailPage(props: PageProps<"/dashboard/fi
   };
 
   const colorHex = stripAlphaFromHex(item.colorHex8);
+  const colorName = deriveColorName(item.title);
+  const productLine = deriveProductLine(item.title);
+  const finish = detectFinish(item.title, item.material);
+  const recycled = detectRecycled(item.title, item.material);
+  const brandUrl = getBrandWebsite(item.brand);
+  const temps = estimatedPrintTemps(item.material);
   const vendorSearchUrl = buildVendorSearchUrl(item.brand, item.title, item.material, item.sku);
   const addHref = buildAddToInventoryHref(item);
 
@@ -50,55 +63,53 @@ export default async function FilamentDetailPage(props: PageProps<"/dashboard/fi
       </Link>
 
       <div className="mt-4 grid grid-cols-1 gap-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6 sm:grid-cols-2">
-        <FilamentDetailImage image={item.image} alt={`${item.brand} ${item.title}`} colorHex={colorHex} />
+        <div>
+          <FilamentDetailImage image={item.image} alt={`${item.brand} ${item.title}`} colorHex={colorHex} />
+        </div>
 
         <div className="flex flex-col">
-          <p className="text-xs font-medium uppercase tracking-wide text-orange-600">{item.brand}</p>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{item.title}</h1>
-
-          <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-            <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Matière</dt>
-              <dd className="mt-0.5 text-slate-700 dark:text-slate-300">{item.material}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Poids</dt>
-              <dd className="mt-0.5 text-slate-700 dark:text-slate-300">
-                {item.weightGrams ? `${item.weightGrams} g` : "Non renseigné"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Couleur</dt>
-              <dd className="mt-0.5 flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                <span
-                  className="h-4 w-4 shrink-0 rounded-full border border-slate-300 dark:border-slate-600"
-                  style={{ backgroundColor: colorHex ?? "#cccccc" }}
-                  aria-hidden="true"
-                />
-                {colorHex ?? "Non renseignée"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Type de couleur</dt>
-              <dd className="mt-0.5 text-slate-700 dark:text-slate-300">{colorTypeLabel(item.colorType)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">SKU</dt>
-              <dd className="mt-0.5 text-slate-700 dark:text-slate-300">{item.sku ?? "Non renseigné"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase text-slate-400">Référence catalogue</dt>
-              <dd className="mt-0.5 text-slate-700 dark:text-slate-300">#{item.externalId}</dd>
-            </div>
-          </dl>
-
-          <p className="mt-4 text-xs text-slate-500">
-            Il n&apos;y a pas de prix ni de paiement sur FilaTrack pour cette référence — voir{" "}
-            <Link href="/dashboard/filaments" className="text-orange-600 hover:underline">
-              le catalogue
-            </Link>{" "}
-            pour plus de contexte.
+          <p className="text-sm text-slate-500">
+            {item.brand}
+            {brandUrl && (
+              <>
+                {" · "}
+                <a href={brandUrl} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:underline">
+                  Site de la marque ↗
+                </a>
+              </>
+            )}
           </p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{colorName}</h1>
+          {productLine && <p className="text-slate-500">{productLine}</p>}
+
+          <div className="mt-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <span
+              className="h-5 w-5 shrink-0 rounded-full border border-slate-300 dark:border-slate-600"
+              style={{ backgroundColor: colorHex ?? "#cccccc" }}
+              aria-hidden="true"
+            />
+            {colorHex ?? "Couleur non renseignée"}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/40 px-4 py-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">Référence catalogue</p>
+              <p className="font-mono text-lg font-bold text-slate-900 dark:text-white">#{item.externalId}</p>
+            </div>
+            <CopyButton value={String(item.externalId)} label="la référence catalogue" />
+          </div>
+
+          {item.sku && (
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 py-2 text-sm">
+              <span className="text-slate-500">SKU</span>
+              <div className="flex items-center gap-1">
+                <span className="font-mono text-slate-700 dark:text-slate-300">{item.sku}</span>
+                <CopyButton value={item.sku} label="le SKU" />
+              </div>
+            </div>
+          )}
+
+          <p className="mt-4 text-xs text-slate-500">Il n&apos;y a pas de prix ni de paiement sur FilaTrack pour cette référence.</p>
 
           <div className="mt-auto flex flex-col gap-2 pt-6">
             <a
@@ -117,6 +128,62 @@ export default async function FilamentDetailPage(props: PageProps<"/dashboard/fi
             </Link>
           </div>
         </div>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Caractéristiques</h2>
+        <dl className="mt-3 divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+          <div className="flex justify-between gap-4 py-2">
+            <dt className="shrink-0 text-slate-500">Matière</dt>
+            <dd className="text-right text-slate-700 dark:text-slate-300">{item.material}</dd>
+          </div>
+          <div className="flex justify-between gap-4 py-2">
+            <dt className="shrink-0 text-slate-500">Type de couleur</dt>
+            <dd className="text-right text-slate-700 dark:text-slate-300">{colorTypeLabel(item.colorType)}</dd>
+          </div>
+          <div className="flex justify-between gap-4 py-2">
+            <dt className="shrink-0 text-slate-500">Finition (détectée)</dt>
+            <dd className="text-right text-slate-700 dark:text-slate-300">{finish ?? "Standard"}</dd>
+          </div>
+          <div className="flex justify-between gap-4 py-2">
+            <dt className="shrink-0 text-slate-500">Recyclé (détecté)</dt>
+            <dd className="text-right text-slate-700 dark:text-slate-300">{recycled ? "Oui" : "Non mentionné"}</dd>
+          </div>
+          <div className="flex justify-between gap-4 py-2">
+            <dt className="shrink-0 text-slate-500">Diamètre</dt>
+            <dd className="text-right text-slate-700 dark:text-slate-300">1,75 mm (valeur standard, non confirmée par la source)</dd>
+          </div>
+          <div className="flex justify-between gap-4 py-2">
+            <dt className="shrink-0 text-slate-500">Poids</dt>
+            <dd className="text-right text-slate-700 dark:text-slate-300">{item.weightGrams ? `${item.weightGrams} g` : "Non renseigné"}</dd>
+          </div>
+        </dl>
+        <p className="mt-3 text-xs text-slate-400">
+          &quot;Finition&quot; et &quot;Recyclé&quot; sont déduits automatiquement du nom du produit (absents de la
+          source) — à vérifier si le doute est possible.
+        </p>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Réglages d&apos;impression indicatifs</h2>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3">
+            <p className="text-xs text-slate-500">Buse</p>
+            <p className="font-semibold text-slate-900 dark:text-white">
+              {temps.nozzleMin}–{temps.nozzleMax} °C
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3">
+            <p className="text-xs text-slate-500">Plateau</p>
+            <p className="font-semibold text-slate-900 dark:text-white">
+              {temps.bedMin}–{temps.bedMax} °C
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-slate-400">
+          Estimation par famille de matière (pas une valeur mesurée pour cette référence précise) — à ajuster selon
+          la bobine réelle et les recommandations du fabricant.
+        </p>
       </div>
     </div>
   );

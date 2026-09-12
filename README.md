@@ -41,9 +41,11 @@ Techniquement : `src/app/manifest.ts` (icônes, couleur de thème, mode plein é
 
 `/dashboard/filaments` donne accès à un catalogue de référence de ~13 900 filaments réels (marque, matière, couleur, poids, image), issu d'une base d'identification RFID/OpenTag plutôt que d'un site marchand — **il ne contient donc ni prix ni lien d'achat direct**. En conséquence :
 
-- Le bouton **"Rechercher un vendeur"** ouvre une recherche (marque + nom + matière) plutôt qu'un lien vers une fiche produit précise — impossible de faire mieux sans cette donnée à la source.
+- Le bouton **"Rechercher un vendeur"** ouvre une recherche (marque + nom + matière, et le SKU entre guillemets quand il existe) plutôt qu'un lien vers une fiche produit précise — impossible de faire mieux sans cette donnée à la source.
 - Le bouton **"Ajouter à mon inventaire"** pré-remplit le formulaire d'ajout de bobine (marque, matière la plus proche parmi celles gérées par FilaTrack, couleur, poids) ; le prix, la date d'achat et le lien fournisseur restent à saisir à la main une fois l'achat fait.
 - Aucun paiement, panier ni compte vendeur n'existe sur FilaTrack : ce n'est pas une boutique, seulement un outil de repérage.
+
+Cliquer sur une carte ouvre sa fiche détail (`/dashboard/filaments/[id]`) : image en grand, couleur (pastille + hex), référence catalogue et SKU (copiables en un clic), caractéristiques (matière, type de couleur, poids). Deux informations y sont **déduites du nom du produit plutôt que fournies par la source** (colonnes "Aspect"/"Code-barres" vides à 100 % dans le fichier d'origine) et toujours étiquetées comme telles dans l'UI : la finition (silk/marbré/mat/recyclé...) et le caractère recyclé. Les **réglages d'impression (buse/plateau)** affichés sont une estimation par grande famille de matière (les mêmes valeurs que pour le formulaire d'ajout de bobine), pas une mesure par produit — toujours marqués "indicatif". Le lien **"Site de la marque"** n'apparaît que pour une liste de marques connues tenue à la main dans `src/lib/filamentCatalogHelpers.ts` (`BRAND_WEBSITES`) — pas de nom de domaine deviné pour les autres.
 
 Contrairement au reste de l'app, ce catalogue vit dans sa propre collection MongoDB (`FilamentCatalogItem`, voir `src/models/FilamentCatalogItem.ts`) plutôt que dans un fichier statique — trop volumineux pour être embarqué dans le bundle JS. Il faut donc l'importer une fois (et à nouveau si le fichier de données est mis à jour) :
 

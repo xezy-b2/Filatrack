@@ -1,4 +1,4 @@
-import { MATERIALS, type Material } from "@/lib/constants";
+import { MATERIALS, DEFAULT_TEMPS, type Material } from "@/lib/constants";
 
 // Le catalogue de référence (data/filament-catalog.json) contient des
 // matières bien plus détaillées (PLA Silk, ABS-CF, PA6-GF, PEEK…) que la
@@ -83,6 +83,95 @@ export function deriveColorName(title: string): string {
   const parts = title.split(" - ");
   const last = parts[parts.length - 1]?.trim();
   return last && last.length > 0 ? last : title;
+}
+
+// Partie "ligne de produit" du même titre (tout sauf la couleur) — ex.
+// "CarbonX - Black" -> "CarbonX". Vide si le titre n'a qu'un seul segment
+// (dans ce cas deriveColorName() renvoie déjà le titre entier).
+export function deriveProductLine(title: string): string | undefined {
+  const parts = title.split(" - ");
+  if (parts.length < 2) return undefined;
+  const line = parts.slice(0, -1).join(" - ").trim();
+  return line.length > 0 ? line : undefined;
+}
+
+// Le fichier source ne renseigne ni la finition ni le caractère recyclé
+// d'une référence (colonnes "Aspect" vides sur 100% des lignes) — ce qui
+// suit est une DÉDUCTION à partir des mots du titre/de la matière, pas une
+// donnée du fabricant. Toujours présentée comme "détectée" dans l'UI.
+const FINISH_KEYWORDS: Array<{ pattern: RegExp; label: string }> = [
+  { pattern: /silk/i, label: "Silk (soie)" },
+  { pattern: /marble/i, label: "Marbré" },
+  { pattern: /\bwood\b/i, label: "Bois" },
+  { pattern: /\bmatte?\b/i, label: "Mat" },
+  { pattern: /translucent|transparent|\bclear\b/i, label: "Transparent" },
+  { pattern: /glow/i, label: "Phosphorescent" },
+  { pattern: /glitter|sparkle/i, label: "Pailleté" },
+  { pattern: /metal/i, label: "Métallique" },
+  { pattern: /\bdual\b|\bduo\b/i, label: "Bicolore" },
+  { pattern: /rainbow/i, label: "Arc-en-ciel" },
+  { pattern: /high speed|\bhs\b/i, label: "Haute vitesse" },
+  { pattern: /\besd\b/i, label: "Antistatique (ESD)" },
+  { pattern: /aero/i, label: "Basse densité (Aero)" },
+];
+
+export function detectFinish(title: string, material: string): string | undefined {
+  const haystack = `${material} ${title}`;
+  for (const { pattern, label } of FINISH_KEYWORDS) {
+    if (pattern.test(haystack)) return label;
+  }
+  return undefined;
+}
+
+export function detectRecycled(title: string, material: string): boolean {
+  return /recycl|rpet|reclaimed|post-consumer/i.test(`${material} ${title}`);
+}
+
+// Sites officiels des marques les plus courantes du catalogue — construite
+// à la main (pas dans le fichier source), volontairement limitée aux
+// marques dont l'URL est sûre plutôt que de deviner. Absente de la liste =
+// pas de lien affiché (on ne devine jamais un nom de domaine).
+const BRAND_WEBSITES: Record<string, string> = {
+  "Bambu Lab": "https://bambulab.com",
+  Polymaker: "https://polymaker.com",
+  eSun: "https://esun3d.com",
+  eSUN: "https://esun3d.com",
+  Sunlu: "https://www.sunlu.com",
+  Overture: "https://overture3d.com",
+  Extrudr: "https://extrudr.com",
+  Prusament: "https://prusament.com",
+  Fiberlogy: "https://fiberlogy.com",
+  "3DXTech": "https://www.3dxtech.com",
+  "Spectrum Filaments": "https://spectrumfilaments.com",
+  Spectrum: "https://spectrumfilaments.com",
+  ArianePlast: "https://www.arianeplast.com",
+  AMOLEN: "https://amolen.com",
+  "Devil Design": "https://devildesign.com",
+  Fillamentum: "https://fillamentum.com",
+  ColorFabb: "https://colorfabb.com",
+  Formfutura: "https://formfutura.com",
+  "Das Filament": "https://das-filament.de",
+  Recreus: "https://recreus.com",
+  Verbatim: "https://www.verbatim.com",
+  Creality: "https://www.creality.com",
+  Elegoo: "https://www.elegoo.com",
+  Anycubic: "https://www.anycubic.com",
+  "Atomic Filament": "https://atomicfilament.com",
+};
+
+export function getBrandWebsite(brand: string): string | undefined {
+  return BRAND_WEBSITES[brand];
+}
+
+// Estimation des températures buse/plateau par grande famille de matière —
+// reprend DEFAULT_TEMPS (déjà utilisée pour pré-remplir le formulaire
+// d'ajout de bobine), via le même mapping que buildAddToInventoryHref.
+// Ce n'est PAS une valeur par produit : deux "PLA Silk" de marques
+// différentes peuvent avoir des plages différentes, d'où le libellé
+// "indicatif" affiché à chaque usage dans l'UI.
+export function estimatedPrintTemps(material: string) {
+  const appMaterial = mapCatalogMaterialToAppMaterial(material);
+  return DEFAULT_TEMPS[appMaterial];
 }
 
 // Lien de recherche générique (pas un lien produit précis : la source ne
