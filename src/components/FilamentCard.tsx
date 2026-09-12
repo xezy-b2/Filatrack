@@ -8,16 +8,12 @@ import {
   deriveColorName,
   buildVendorSearchUrl,
 } from "@/lib/filamentCatalogHelpers";
+import type { FilamentCatalogItemView } from "@/lib/filamentCatalogQuery";
 
-export type FilamentCatalogItemView = {
-  id: string;
-  brand: string;
-  title: string;
-  material: string;
-  weightGrams?: number;
-  colorHex8?: string;
-  image?: string;
-};
+// Ré-exporté pour que les composants qui affichent une carte (FilamentCatalogGrid)
+// puissent importer ce type depuis FilamentCard sans dépendre directement de
+// filamentCatalogQuery.ts (module serveur, requêtes Mongoose).
+export type { FilamentCatalogItemView };
 
 export default function FilamentCard({ item }: { item: FilamentCatalogItemView }) {
   const [imageError, setImageError] = useState(false);
