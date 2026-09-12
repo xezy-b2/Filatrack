@@ -12,6 +12,7 @@ import BadgeGrid from "@/components/BadgeGrid";
 import BadgeShowcase from "@/components/BadgeShowcase";
 import MemberProfileTabs from "@/components/MemberProfileTabs";
 import { BADGES } from "@/lib/badges";
+import { displayName } from "@/lib/displayName";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export default async function MemberInventoryPage(props: PageProps<"/community/[
   await connectToDatabase();
 
   const member = await User.findById(userId)
-    .select("name avatar printerModel badges createdAt showcaseBadges")
+    .select("name pseudo avatar printerModel badges createdAt showcaseBadges")
     .lean();
   if (!member) {
     notFound();
@@ -95,11 +96,12 @@ export default async function MemberInventoryPage(props: PageProps<"/community/[
 
       <div className="mt-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
-          <Avatar name={member.name} src={member.avatar} size={44} />
+          <Avatar name={displayName(member)} src={member.avatar} size={44} />
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Inventaire de {member.name}
+              Inventaire de {displayName(member)}
             </h1>
+            <p className="text-sm text-slate-400 dark:text-slate-500">@{member.name}</p>
             {member.showcaseBadges && member.showcaseBadges.length > 0 && (
               <div className="mt-1">
                 <BadgeShowcase badgeIds={member.showcaseBadges} />

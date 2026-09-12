@@ -8,6 +8,7 @@ import Avatar from "@/components/Avatar";
 import BadgeGrid from "@/components/BadgeGrid";
 import BadgeShowcase from "@/components/BadgeShowcase";
 import { syncBadges, BADGES } from "@/lib/badges";
+import { displayName } from "@/lib/displayName";
 
 export const dynamic = "force-dynamic";
 
@@ -61,10 +62,11 @@ export default async function ProfilePage() {
 
         <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-center sm:text-left">
           <div className="shrink-0 rounded-full bg-white p-1 shadow-lg ring-1 ring-black/5 dark:bg-slate-900">
-            <Avatar name={user.name} src={user.avatar} size={92} />
+            <Avatar name={displayName(user)} src={user.avatar} size={92} />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{user.name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{displayName(user)}</h1>
+            <p className="text-sm text-slate-400 dark:text-slate-500">@{user.name}</p>
 
             <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-slate-500 sm:justify-start">
               <span>{user.printerModel ? `🖨️ ${user.printerModel}` : "Imprimante non renseignée"}</span>

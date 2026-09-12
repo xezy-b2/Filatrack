@@ -25,7 +25,7 @@ async function requireUserId(): Promise<string> {
 const MAX_AVATAR_LENGTH = 1_500_000;
 
 const ProfileSchema = z.object({
-  name: z.string().trim().min(2, "Le nom doit faire au moins 2 caractères.").max(60),
+  pseudo: z.string().trim().max(60, "Le pseudo doit faire au maximum 60 caractères.").optional(),
   printerModel: z.string().trim().max(60).optional(),
   avatar: z
     .string()
@@ -40,7 +40,7 @@ export async function updateProfile(_prevState: ActionState, formData: FormData)
   const userId = await requireUserId();
 
   const parsed = ProfileSchema.safeParse({
-    name: formData.get("name"),
+    pseudo: formData.get("pseudo") || undefined,
     printerModel: formData.get("printerModel") || undefined,
     avatar: formData.get("avatar") || undefined,
     removeAvatar: formData.get("removeAvatar") || undefined,
@@ -56,7 +56,7 @@ export async function updateProfile(_prevState: ActionState, formData: FormData)
     return { error: "Compte introuvable." };
   }
 
-  user.name = parsed.data.name;
+  user.pseudo = parsed.data.pseudo || undefined;
   user.printerModel = parsed.data.printerModel || undefined;
 
   if (parsed.data.removeAvatar === "true") {

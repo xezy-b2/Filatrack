@@ -40,6 +40,7 @@ export type SpoolView = {
 export type MemberSummary = {
   id: string;
   name: string;
+  pseudo?: string;
   avatar?: string;
   printerModel?: string;
   showcaseBadges: string[];

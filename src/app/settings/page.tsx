@@ -39,6 +39,7 @@ export default async function SettingsPage() {
         <div className="mt-4">
           <ProfileForm
             name={user.name}
+            pseudo={user.pseudo ?? undefined}
             avatar={user.avatar ?? undefined}
             printerModel={user.printerModel ?? undefined}
           />

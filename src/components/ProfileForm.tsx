@@ -6,10 +6,12 @@ import AvatarUploader from "@/components/AvatarUploader";
 
 export default function ProfileForm({
   name,
+  pseudo,
   avatar,
   printerModel,
 }: {
   name: string;
+  pseudo?: string;
   avatar?: string;
   printerModel?: string;
 }) {
@@ -21,11 +23,28 @@ export default function ProfileForm({
 
   return (
     <form action={formAction} className="space-y-6">
-      <AvatarUploader name={name} initialAvatar={avatar} />
+      <AvatarUploader name={pseudo?.trim() || name} initialAvatar={avatar} />
 
       <div>
-        <label className={labelClass} htmlFor="name">Nom / pseudo</label>
-        <input id="name" name="name" defaultValue={name} required className={inputClass} />
+        <p className={labelClass}>Identifiant</p>
+        <p className="mt-1 text-sm text-slate-500">
+          @{name} — fixé à l&apos;inscription, ne peut pas changer. Affiché en petit sous ton pseudo.
+        </p>
+      </div>
+
+      <div>
+        <label className={labelClass} htmlFor="pseudo">Pseudo (optionnel)</label>
+        <input
+          id="pseudo"
+          name="pseudo"
+          defaultValue={pseudo}
+          placeholder={name}
+          className={inputClass}
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          Affiché à la place de @{name} sur ton profil, la communauté et partout ailleurs sur le site. Laisse vide
+          pour garder @{name}.
+        </p>
       </div>
 
       <div>

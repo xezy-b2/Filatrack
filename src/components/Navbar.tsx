@@ -4,19 +4,25 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import NavbarMenu from "@/components/NavbarMenu";
 import { getNotifications } from "@/app/actions/notifications";
+import { displayName } from "@/lib/displayName";
 
 export default async function Navbar() {
   const session = await auth();
 
   let avatar: string | undefined;
+  let name = session?.user?.name ?? "?";
   let notificationsData: Awaited<ReturnType<typeof getNotifications>> = { notifications: [], unreadCount: 0 };
   if (session?.user?.id) {
     await connectToDatabase();
     const [user, notifications] = await Promise.all([
-      User.findById(session.user.id).select("avatar").lean<{ avatar?: string }>(),
+      User.findById(session.user.id).select("name pseudo avatar").lean<{ name: string; pseudo?: string; avatar?: string }>(),
       getNotifications(),
     ]);
     avatar = user?.avatar;
+    // La session NextAuth ne connaît que le `name` figé au moment de la
+    // connexion : on relit en base pour refléter un pseudo tout juste changé
+    // sans devoir se reconnecter (voir src/lib/displayName.ts).
+    if (user) name = displayName(user);
     notificationsData = notifications;
   }
 
@@ -30,7 +36,7 @@ export default async function Navbar() {
 
         {session?.user ? (
           <NavbarMenu
-            userName={session.user.name ?? "?"}
+            userName={name}
             avatar={avatar}
             notifications={notificationsData.notifications}
             unreadCount={notificationsData.unreadCount}

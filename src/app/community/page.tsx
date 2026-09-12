@@ -8,6 +8,7 @@ import mongoose from "mongoose";
 import type { MemberSummary } from "@/lib/types";
 import Avatar from "@/components/Avatar";
 import BadgeShowcase from "@/components/BadgeShowcase";
+import { displayName } from "@/lib/displayName";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function CommunityPage() {
 
   await connectToDatabase();
 
-  const users = await User.find({}).select("name email avatar printerModel showcaseBadges").lean();
+  const users = await User.find({}).select("name pseudo email avatar printerModel showcaseBadges").lean();
 
   const aggregation = await Spool.aggregate([
     {
@@ -56,6 +57,7 @@ export default async function CommunityPage() {
     return {
       id: u._id.toString(),
       name: u.name,
+      pseudo: u.pseudo ?? undefined,
       avatar: u.avatar,
       printerModel: u.printerModel,
       showcaseBadges: u.showcaseBadges ?? [],
@@ -65,7 +67,9 @@ export default async function CommunityPage() {
     };
   });
 
-  members.sort((a, b) => (a.id === session.user.id ? -1 : b.id === session.user.id ? 1 : a.name.localeCompare(b.name)));
+  members.sort((a, b) =>
+    a.id === session.user.id ? -1 : b.id === session.user.id ? 1 : displayName(a).localeCompare(displayName(b))
+  );
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -86,11 +90,12 @@ export default async function CommunityPage() {
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-3 min-w-0">
-                  <Avatar name={m.name} src={m.avatar} size={40} />
+                  <Avatar name={displayName(m)} src={m.avatar} size={40} />
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-slate-900 dark:text-white">
-                      {m.name} {isSelf && <span className="text-xs font-normal text-orange-600">(moi)</span>}
+                      {displayName(m)} {isSelf && <span className="text-xs font-normal text-orange-600">(moi)</span>}
                     </p>
+                    <p className="truncate text-xs text-slate-400 dark:text-slate-500">@{m.name}</p>
                     {m.showcaseBadges.length > 0 && (
                       <div className="mt-0.5">
                         <BadgeShowcase badgeIds={m.showcaseBadges} />

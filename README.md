@@ -4,7 +4,7 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
 
 ## Fonctionnalités
 
-- **Comptes utilisateurs** : inscription / connexion par email + mot de passe (NextAuth v5, mots de passe hashés avec bcrypt).
+- **Comptes utilisateurs** : inscription / connexion par email + mot de passe (NextAuth v5, mots de passe hashés avec bcrypt). Le nom choisi à l'inscription reste l'identifiant fixe du compte (affiché en petit sous la forme `@nom`) ; un **pseudo** optionnel, modifiable à tout moment sur `/settings`, prend le dessus pour l'affichage principal partout sur le site quand il est renseigné (voir `src/lib/displayName.ts`).
 - **Profil** (`/profile`) : vraie page de présentation (avatar, pseudo, badges mis en avant, imprimante, date d'inscription, badges débloqués) — ce que voient les autres membres de la communauté. Les réglages du compte (photo de profil, pseudo, imprimante, badges mis en avant, clé API, mot de passe) se gèrent séparément sur **Paramètres** (`/settings`).
 - **Inventaire personnel** : chaque compte gère ses propres bobines, invisibles/non modifiables par les autres.
 - **Communauté** : page listant tous les comptes créés, avec un aperçu (nombre de bobines, stock restant, alertes) et une fiche détaillée en lecture seule pour chaque membre, avec deux onglets : **Ses bobines** (inventaire) et **Profil** (badges, imprimante, date d'inscription).

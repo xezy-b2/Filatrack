@@ -10,7 +10,15 @@ const EarnedBadgeSchema = new Schema(
 
 const UserSchema = new Schema(
   {
+    // Identifiant fixé à l'inscription, affiché en "@name" un peu partout :
+    // volontairement non modifiable depuis les réglages (voir `pseudo`
+    // ci-dessous pour changer ce qui est affiché au premier plan).
     name: { type: String, required: true, trim: true, maxlength: 60 },
+    // Nom d'affichage optionnel, éditable à tout moment sur /settings.
+    // Prioritaire sur `name` partout où le site affiche l'identité d'un
+    // membre (profil, communauté, navbar...) ; `name` reste toujours visible
+    // en petit à côté, sous la forme "@name" (voir src/lib/displayName.ts).
+    pseudo: { type: String, trim: true, maxlength: 60 },
     email: {
       type: String,
       required: true,

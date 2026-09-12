@@ -3,9 +3,11 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Spool } from "@/models/Spool";
+import { User } from "@/models/User";
 import { serializeSpool } from "@/lib/serialize";
 import StatsBar from "@/components/StatsBar";
 import DashboardSpoolList from "@/components/DashboardSpoolList";
+import { displayName } from "@/lib/displayName";
 
 export const dynamic = "force-dynamic";
 
@@ -16,15 +18,19 @@ export default async function DashboardPage() {
   }
 
   await connectToDatabase();
-  const docs = await Spool.find({ owner: session.user.id }).sort({ status: 1, remainingWeight: 1 }).lean();
+  const [docs, user] = await Promise.all([
+    Spool.find({ owner: session.user.id }).sort({ status: 1, remainingWeight: 1 }).lean(),
+    User.findById(session.user.id).select("name pseudo").lean<{ name: string; pseudo?: string } | null>(),
+  ]);
   const spools = docs.map(serializeSpool);
+  const greetingName = user ? displayName(user) : session.user.name;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Mon inventaire, {session.user.name}
+            Mon inventaire, {greetingName}
           </h1>
           <p className="text-sm text-slate-500">Suivi des bobines pour ta Bambu Lab P2S.</p>
         </div>
