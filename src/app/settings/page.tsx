@@ -2,11 +2,13 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { connectToDatabase } from "@/lib/mongodb";
+import { getOrigin } from "@/lib/origin";
 import { User, type UserDoc } from "@/models/User";
 import ProfileForm from "@/components/ProfileForm";
 import PasswordForm from "@/components/PasswordForm";
 import ApiKeySection from "@/components/ApiKeySection";
 import BadgeShowcaseForm from "@/components/BadgeShowcaseForm";
+import ShareSettings from "@/components/ShareSettings";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,9 @@ export default async function SettingsPage() {
   if (!user) {
     redirect("/login");
   }
+
+  const origin = await getOrigin();
+  const shareUrl = user.shareToken ? `${origin}/share/${user.shareToken}` : undefined;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 space-y-8">
@@ -63,6 +68,13 @@ export default async function SettingsPage() {
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Clé API (app desktop)</h2>
         <div className="mt-4">
           <ApiKeySection hasKey={!!user.apiKeyHash} />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Partage public</h2>
+        <div className="mt-4">
+          <ShareSettings shareUrl={shareUrl} />
         </div>
       </section>
 

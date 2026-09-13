@@ -25,6 +25,7 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
 - **Suivi et contrôle de l'impression en cours** (`/dashboard/printer`) : tant qu'une impression tourne ou est en pause, un bandeau affiche l'avancement (%), le fichier et le temps restant, avec des boutons **Pause / Reprendre / Arrêter**. La commande est déposée côté site puis récupérée par l'app desktop (sondage toutes les ~8 secondes) qui la transmet à l'imprimante en MQTT — un délai de quelques secondes entre le clic et l'exécution est donc normal. Il n'y a pas de bouton "démarrer une nouvelle impression" : cela demanderait de parcourir les fichiers stockés sur l'imprimante elle-même, hors du périmètre de FilaTrack.
 - **Installable sur mobile (PWA)** : FilaTrack peut s'ajouter à l'écran d'accueil du téléphone (icône dédiée, ouverture en plein écran sans barre d'adresse), sans passer par l'App Store ni le Play Store — voir [Installer FilaTrack sur mobile](#installer-filatrack-sur-mobile) ci-dessous.
 - **Catalogue Filaments** (`/dashboard/filaments`) : catalogue de référence de ~13 900 filaments réels chez 73 marques (matière, couleur, poids, image), avec recherche et filtres par matière/marque. Il n'y a pas de prix ni de paiement sur FilaTrack : chaque fiche a un bouton "Rechercher un vendeur" (recherche pré-remplie, pas un lien produit précis puisque cette donnée n'est pas disponible dans la source) et un bouton "Ajouter à mon inventaire" qui pré-remplit le formulaire d'ajout de bobine — voir [Catalogue Filaments](#catalogue-filaments) ci-dessous.
+- **Partage public de l'inventaire** (`/settings`) : génère un lien public en lecture seule (`/share/[token]`) pour montrer son inventaire à quelqu'un sans qu'il ait besoin de créer un compte. Désactivé par défaut, révocable et régénérable à tout moment — voir [Partage public](#partage-public) ci-dessous.
 
 ## Installer FilaTrack sur mobile
 
@@ -54,6 +55,15 @@ node scripts/seed-filament-catalog.mjs
 ```
 
 Ce script lit `data/filament-catalog.json` (déjà dans le dépôt) et l'importe dans la base pointée par `MONGODB_URI` (upsert par référence, donc sans jamais dupliquer si on le relance).
+
+## Partage public
+
+Depuis **Paramètres** (`/settings`), n'importe quel compte peut activer un lien public de la forme `https://.../share/<jeton>` qui affiche son inventaire (bobines actives, badges mis en avant, imprimante) en lecture seule, **sans connexion requise** — pratique pour montrer sa liste à quelqu'un hors de l'appli (un ami qui veut te prêter/racheter du filament, par exemple) sans lui faire créer de compte.
+
+- **Désactivé par défaut** : le champ `shareToken` (`src/models/User.ts`) est absent tant que le partage n'a jamais été activé ; aucune donnée n'est exposée avant ce premier clic.
+- Le jeton est une chaîne aléatoire de 16 octets (`crypto.randomBytes(16)`, `src/app/actions/sharing.ts`) stockée **en clair** (contrairement à la clé API) : le modèle de sécurité est celui d'un lien de partage façon Google Docs — sa confidentialité tient au fait qu'il n'est connu que de qui le reçoit, pas à un hash. **Toute personne qui a le lien peut le voir**, c'est pourquoi le bouton "Régénérer le lien" invalide l'ancien immédiatement (utile si le lien a été partagé par erreur), et "Désactiver le partage" le supprime complètement.
+- La page publique (`src/app/share/[token]/page.tsx`) ne sélectionne jamais que les mêmes champs "sûrs" que la fiche communauté existante (nom, pseudo, avatar, imprimante, badges) — jamais l'email, le hash de mot de passe ou la clé API. Les bobines archivées ne sont pas affichées.
+- La route `/share/:path*` est volontairement absente du matcher de `src/proxy.ts` : c'est la seule zone du site accessible sans session.
 
 ## Stack technique
 
@@ -200,3 +210,4 @@ Réponse : `{ "command": "pause" | "resume" | "stop" | null }`. La commande est 
 - Les inventaires des autres membres ne sont accessibles qu'en lecture (aucune route ne permet de modifier les bobines d'un autre compte).
 - La clé API (synchro imprimante) n'est jamais stockée en clair côté serveur : seul un hash SHA-256 est conservé, et la clé n'est affichée qu'une fois, au moment de sa génération.
 - Le code d'accès LAN de l'imprimante ne transite jamais par ce site : il reste uniquement dans la configuration locale de l'app desktop, utilisé pour la connexion MQTT directe au réseau local.
+- Le lien de partage public (`/share/[token]`) est désactivé par défaut, ne montre jamais l'email ni les informations sensibles du compte, et peut être révoqué ou régénéré à tout moment depuis `/settings` (voir [Partage public](#partage-public) ci-dessus).

@@ -45,6 +45,12 @@ const UserSchema = new Schema(
     // restant des bobines. La clé en clair n'est jamais stockée, seulement
     // montrée une fois au moment de sa génération.
     apiKeyHash: { type: String, index: true, unique: true, sparse: true },
+    // Jeton d'un lien public en lecture seule vers l'inventaire (voir
+    // /share/[token] et src/app/actions/sharing.ts) — absent tant que le
+    // partage n'a jamais été activé. `sparse` pour que plusieurs comptes
+    // sans partage actif (valeur absente) ne se percutent pas sur l'index
+    // unique.
+    shareToken: { type: String, index: true, unique: true, sparse: true },
   },
   { timestamps: true }
 );
