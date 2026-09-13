@@ -11,6 +11,9 @@ import { User } from "@/models/User";
 import { syncBadges } from "@/lib/badges";
 import { MATERIALS, DEFAULT_TEMPS, type Material } from "@/lib/constants";
 import { getGenericFilamentProfile, toBambuTrayColor } from "@/lib/bambuFilamentProfiles";
+import { buildBambuCommandPayload, sendCloudPrintCommand, fetchCloudPrinterState } from "@/lib/bambuCloud";
+import { applyPrinterSync } from "@/lib/printerSync";
+import { decryptSecret } from "@/lib/secretCrypto";
 
 export type ActionState = { error?: string; success?: string } | undefined;
 export type ApiKeyActionState = { error?: string; newKey?: string } | undefined;
@@ -125,13 +128,31 @@ export async function revokeApiKey() {
 
 const PRINT_COMMANDS = ["pause", "resume", "stop"] as const;
 export type PrintCommand = (typeof PRINT_COMMANDS)[number];
-export type PrintCommandState = { error?: string } | undefined;
+export type PrintCommandState = { error?: string; viaCloud?: boolean } | undefined;
 
-// Dépose une commande de contrôle d'impression en attente pour cette
-// imprimante. L'app desktop la récupère par polling (voir
-// /api/printer-sync/command) puis la publie en MQTT vers l'imprimante — le
-// site ne parle jamais directement à l'imprimante, qui est sur le réseau
-// local de l'utilisateur.
+// Si l'utilisateur a connecté son compte Bambu Lab (voir actions/bambuCloud.ts
+// et /settings), on peut parler directement au cloud Bambu — plus rapide (pas
+// de délai de polling) et fonctionne depuis n'importe où, pas seulement
+// depuis le réseau local. Retourne null si non connecté (ou jeton illisible,
+// ex: BAMBU_TOKEN_SECRET changé depuis) : dans ce cas on retombe sur le
+// chemin local existant (app desktop).
+async function getCloudCreds(userId: string): Promise<{ uid: string; accessToken: string } | null> {
+  const user = await User.findById(userId).select("bambuCloud").lean();
+  const cloud = user?.bambuCloud;
+  if (!cloud?.accessTokenEnc || !cloud?.uid) return null;
+  try {
+    return { uid: cloud.uid, accessToken: decryptSecret(cloud.accessTokenEnc) };
+  } catch {
+    return null;
+  }
+}
+
+// Envoie une commande de contrôle d'impression. Deux chemins possibles :
+// - Compte Bambu Cloud connecté : envoi direct au broker cloud Bambu, depuis
+//   le serveur, sans délai ni dépendance au réseau local de l'utilisateur.
+// - Sinon (comportement historique) : dépose la commande en attente pour
+//   cette imprimante, récupérée par polling par l'app desktop (voir
+//   /api/printer-sync/command) puis publiée en MQTT local vers l'imprimante.
 export async function sendPrinterCommand(printerId: string, command: PrintCommand): Promise<PrintCommandState> {
   const userId = await requireUserId();
 
@@ -140,6 +161,16 @@ export async function sendPrinterCommand(printerId: string, command: PrintComman
   }
 
   await connectToDatabase();
+
+  const cloudCreds = await getCloudCreds(userId);
+  if (cloudCreds) {
+    const printer = await Printer.findOne({ _id: printerId, owner: userId }).select("deviceId").lean();
+    if (!printer) return { error: "Imprimante introuvable." };
+
+    const result = await sendCloudPrintCommand(cloudCreds, printer.deviceId, buildBambuCommandPayload({ type: command }));
+    return result.ok ? { viaCloud: true } : { error: result.error };
+  }
+
   const result = await Printer.updateOne(
     { _id: printerId, owner: userId },
     { $set: { pendingCommand: { type: command } } }
@@ -180,26 +211,64 @@ export async function sendSetFilamentCommand(
 
   await connectToDatabase();
   const temps = DEFAULT_TEMPS[material];
+  const commandFields = {
+    type: "set-filament" as const,
+    amsId: Math.floor(slotIndex / 4),
+    trayId: slotIndex % 4,
+    trayInfoIdx: profile.trayInfoIdx,
+    trayType: profile.trayType,
+    trayColor: toBambuTrayColor(colorHex),
+    nozzleTempMin: temps.nozzleMin,
+    nozzleTempMax: temps.nozzleMax,
+  };
+
+  const cloudCreds = await getCloudCreds(userId);
+  if (cloudCreds) {
+    const printer = await Printer.findOne({ _id: printerId, owner: userId }).select("deviceId").lean();
+    if (!printer) return { error: "Imprimante introuvable." };
+
+    const result = await sendCloudPrintCommand(cloudCreds, printer.deviceId, buildBambuCommandPayload(commandFields));
+    return result.ok ? { viaCloud: true } : { error: result.error };
+  }
+
   const result = await Printer.updateOne(
     { _id: printerId, owner: userId },
-    {
-      $set: {
-        pendingCommand: {
-          type: "set-filament",
-          amsId: Math.floor(slotIndex / 4),
-          trayId: slotIndex % 4,
-          trayInfoIdx: profile.trayInfoIdx,
-          trayType: profile.trayType,
-          trayColor: toBambuTrayColor(colorHex),
-          nozzleTempMin: temps.nozzleMin,
-          nozzleTempMax: temps.nozzleMax,
-        },
-      },
-    }
+    { $set: { pendingCommand: commandFields } }
   );
   if (result.matchedCount === 0) {
     return { error: "Imprimante introuvable." };
   }
 
   return undefined;
+}
+
+export type RefreshCloudState = { error?: string; success?: string } | undefined;
+
+// Lecture ponctuelle de l'AMS + du statut d'impression directement depuis le
+// cloud Bambu (voir fetchCloudPrinterState), pour les moments où l'app
+// desktop ne tourne pas (utilisateur loin de son réseau local) — la synchro
+// automatique habituelle (via l'app desktop, réseau local) continue de
+// fonctionner normalement en parallèle quand elle est active.
+export async function refreshFromBambuCloud(printerId: string): Promise<RefreshCloudState> {
+  const userId = await requireUserId();
+
+  await connectToDatabase();
+  const cloudCreds = await getCloudCreds(userId);
+  if (!cloudCreds) {
+    return { error: "Connecte d'abord ton compte Bambu Lab dans Paramètres." };
+  }
+
+  const printer = await Printer.findOne({ _id: printerId, owner: userId });
+  if (!printer) {
+    return { error: "Imprimante introuvable." };
+  }
+
+  const result = await fetchCloudPrinterState(cloudCreds, printer.deviceId);
+  if (!result.ok) {
+    return { error: result.error };
+  }
+
+  await applyPrinterSync(printer, userId, result.data.slots, result.data.printStatus ?? undefined);
+  revalidatePath("/dashboard/printer");
+  return { success: "Actualisé depuis le cloud Bambu Lab." };
 }

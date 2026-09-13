@@ -36,7 +36,10 @@ export default function SendFilamentProfileButton({
     startTransition(async () => {
       const result = await sendSetFilamentCommand(printerId, slotIndex, material, colorHex);
       setMessage(
-        result?.error ?? "Envoyé — l'app desktop l'appliquera sur l'AMS dans quelques secondes."
+        result?.error ??
+          (result?.viaCloud
+            ? "Envoyé directement via le cloud Bambu Lab."
+            : "Envoyé — l'app desktop l'appliquera sur l'AMS dans quelques secondes.")
       );
     });
   }

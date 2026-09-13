@@ -30,6 +30,7 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
 - **Installable sur mobile (PWA)** : FilaTrack peut s'ajouter à l'écran d'accueil du téléphone (icône dédiée, ouverture en plein écran sans barre d'adresse), sans passer par l'App Store ni le Play Store — voir [Installer FilaTrack sur mobile](#installer-filatrack-sur-mobile) ci-dessous.
 - **Catalogue Filaments** (`/dashboard/filaments`) : catalogue de référence de ~13 900 filaments réels chez 73 marques (matière, couleur, poids, image), avec recherche et filtres par matière/marque. Il n'y a pas de prix ni de paiement sur FilaTrack : chaque fiche a un bouton "Rechercher un vendeur" (recherche pré-remplie, pas un lien produit précis puisque cette donnée n'est pas disponible dans la source) et un bouton "Ajouter à mon inventaire" qui pré-remplit le formulaire d'ajout de bobine — voir [Catalogue Filaments](#catalogue-filaments) ci-dessous.
 - **Partage public de l'inventaire** (`/settings`) : génère un lien public en lecture seule (`/share/[token]`) pour montrer son inventaire à quelqu'un sans qu'il ait besoin de créer un compte. Désactivé par défaut, révocable et régénérable à tout moment — voir [Partage public](#partage-public) ci-dessous.
+- **Connexion au compte cloud Bambu Lab** (`/settings`, optionnelle) : en plus du mode LAN local (via l'app desktop), FilaTrack peut parler directement au cloud Bambu Lab pour piloter l'imprimante et lire l'AMS depuis n'importe où, sans dépendre d'un ordinateur allumé sur le réseau de l'utilisateur — voir [Connexion au compte cloud Bambu Lab](#connexion-au-compte-cloud-bambu-lab-optionnel) ci-dessous.
 
 ## Installer FilaTrack sur mobile
 
@@ -108,6 +109,7 @@ cp .env.example .env.local
   openssl rand -base64 32
   ```
 - `NEXTAUTH_URL` : `http://localhost:3000` en local, ou l'URL publique de ton déploiement en production.
+- `BAMBU_TOKEN_SECRET` : uniquement si tu utilises la connexion au compte cloud Bambu Lab (voir [Connexion au compte cloud Bambu Lab](#connexion-au-compte-cloud-bambu-lab-optionnel) plus bas) — même commande que `AUTH_SECRET` pour en générer un.
 
 ### 4. Lancer le serveur de développement
 
@@ -211,6 +213,18 @@ Réponse : `{ "command": null }`, ou `{ "command": { "type": "pause" | "resume" 
 
 Sur chaque slot de l'aperçu AMS (`/dashboard/printer`), un sélecteur + bouton "Envoyer" dépose une commande `set-filament` : l'app desktop la traduit en commande MQTT Bambu `ams_filament_setting` (équivalent de choisir un profil filament générique sur l'écran de l'imprimante ou dans Bambu Handy). Les codes de profil (`trayInfoIdx`, ex: `GFL99` pour "Generic PLA") viennent de `src/lib/bambuFilamentProfiles.ts` — une table tenue à la main à partir de la documentation communautaire du protocole Bambu Lab (pas une doc officielle), volontairement limitée aux matières dont le code générique est confirmé (PLA, PLA-CF, PETG, ABS, ASA, TPU, PA, PA-CF, PC, PVA). `trayColor` (format `RRGGBBAA`) reprend la couleur de la bobine FilaTrack associée au slot quand il y en a une. Cette commande nécessite la version de l'app desktop qui sait l'interpréter (voir `LISEZ-MOI.md` du projet desktop) — contrairement au site, l'app desktop ne se met pas à jour toute seule.
 
+## Connexion au compte cloud Bambu Lab (optionnel)
+
+Le mode LAN (app desktop) exige d'être sur le même réseau que l'imprimante — inutilisable en déplacement. En alternative, `/settings` permet de connecter son compte Bambu Lab : le serveur FilaTrack parle alors directement au broker MQTT cloud de Bambu (`us.mqtt.bambulab.com`), exactement comme le fait Bambu Handy, depuis n'importe où.
+
+**Connexion** (`src/app/actions/bambuCloud.ts`, `src/lib/bambuCloud.ts`) : un email suffit — FilaTrack envoie un code de vérification via l'API Bambu Lab (`POST /v1/user-service/user/sendemail/code`), puis échange ce code contre un jeton d'accès (`POST /v1/user-service/user/login`). Le mot de passe du compte Bambu n'est jamais demandé. Le jeton est chiffré (AES-256-GCM, voir `src/lib/secretCrypto.ts`) avant d'être stocké sur le compte utilisateur — il faut donc définir `BAMBU_TOKEN_SECRET` (voir plus haut) pour utiliser cette fonctionnalité. La double authentification (TFA) sur le compte Bambu n'est pas gérée : un compte avec TFA activé ne peut pas se connecter par ce biais.
+
+**Effet une fois connecté** : les actions `sendPrinterCommand` et `sendSetFilamentCommand` (`src/app/actions/printer.ts`) envoient la commande directement au cloud Bambu et attendent la confirmation, au lieu de la déposer en attente pour l'app desktop — plus de délai de polling, et ça fonctionne sans app desktop ni réseau local. Un bouton **"☁️ Actualiser depuis le cloud"** apparaît aussi sur `/dashboard/printer`, à côté de l'aperçu AMS, pour lire ponctuellement l'état de l'imprimante (slots + impression en cours) via le cloud plutôt que d'attendre la prochaine synchro de l'app desktop.
+
+Ce chemin est indépendant du mode LAN : les deux peuvent coexister, et rien n'empêche de garder l'app desktop pour la synchro automatique en continu (calcul du poids restant) tout en utilisant le cloud ponctuellement en déplacement.
+
+⚠️ Contrepartie assumée : contrairement au reste de FilaTrack (conçu pour ne jamais transiter par un tiers), cette fonctionnalité fait passer les commandes — et un jeton d'accès au compte Bambu Lab de l'utilisateur — par les serveurs de Bambu Lab. Elle est désactivée par défaut (opt-in) et se déconnecte à tout moment depuis `/settings`. Comme pour le mode LAN, les endpoints utilisés viennent de la documentation communautaire (reverse engineering), pas d'une doc officielle Bambu Lab, et n'ont pas été testés à grande échelle.
+
 ## Notes de sécurité
 
 - Les mots de passe sont hashés avec bcrypt (jamais stockés en clair).
@@ -219,3 +233,4 @@ Sur chaque slot de l'aperçu AMS (`/dashboard/printer`), un sélecteur + bouton 
 - La clé API (synchro imprimante) n'est jamais stockée en clair côté serveur : seul un hash SHA-256 est conservé, et la clé n'est affichée qu'une fois, au moment de sa génération.
 - Le code d'accès LAN de l'imprimante ne transite jamais par ce site : il reste uniquement dans la configuration locale de l'app desktop, utilisé pour la connexion MQTT directe au réseau local.
 - Le lien de partage public (`/share/[token]`) est désactivé par défaut, ne montre jamais l'email ni les informations sensibles du compte, et peut être révoqué ou régénéré à tout moment depuis `/settings` (voir [Partage public](#partage-public) ci-dessus).
+- Le jeton d'accès au compte cloud Bambu Lab (connexion optionnelle, voir [Connexion au compte cloud Bambu Lab](#connexion-au-compte-cloud-bambu-lab-optionnel) ci-dessus) est chiffré au repos (AES-256-GCM) et n'est déchiffré côté serveur qu'au moment précis d'envoyer une commande ou de lire l'AMS — jamais renvoyé au navigateur.

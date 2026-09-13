@@ -15,7 +15,10 @@ export default function PrintControlButtons({ printerId, state }: { printerId: s
     startTransition(async () => {
       const result = await sendPrinterCommand(printerId, command);
       setMessage(
-        result?.error ?? "Commande envoyée — elle sera appliquée dans quelques secondes le temps que l'app desktop la récupère."
+        result?.error ??
+          (result?.viaCloud
+            ? "Envoyée directement via le cloud Bambu Lab."
+            : "Commande envoyée — elle sera appliquée dans quelques secondes le temps que l'app desktop la récupère.")
       );
     });
   }

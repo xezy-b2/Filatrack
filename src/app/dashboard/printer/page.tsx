@@ -4,11 +4,13 @@ import { redirect } from "next/navigation";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Printer } from "@/models/Printer";
 import { Spool } from "@/models/Spool";
+import { User } from "@/models/User";
 import PrinterForm from "@/components/PrinterForm";
 import PrinterSlotsForm from "@/components/PrinterSlotsForm";
 import DeletePrinterButton from "@/components/DeletePrinterButton";
 import PrintStatusCard, { type PrinterPrintStatus } from "@/components/PrintStatusCard";
 import AmsSlotsView, { type AmsSlotView } from "@/components/AmsSlotsView";
+import RefreshFromCloudButton from "@/components/RefreshFromCloudButton";
 import { mapTrayTypeToMaterial, normalizeTrayColor } from "@/lib/bambuMaterial";
 
 export const dynamic = "force-dynamic";
@@ -20,13 +22,15 @@ export default async function PrinterPage() {
   }
 
   await connectToDatabase();
-  const [printers, spools] = await Promise.all([
+  const [printers, spools, user] = await Promise.all([
     Printer.find({ owner: session.user.id }).sort({ createdAt: 1 }).lean(),
     Spool.find({ owner: session.user.id, status: { $ne: "archivee" } })
       .select("brand material colorName")
       .sort({ colorName: 1 })
       .lean(),
+    User.findById(session.user.id).select("bambuCloud").lean(),
   ]);
+  const hasBambuCloud = !!user?.bambuCloud?.accessTokenEnc;
 
   const spoolOptions = spools.map((s) => ({
     id: s._id.toString(),
@@ -93,6 +97,14 @@ export default async function PrinterPage() {
         <p className="mt-2 text-xs text-slate-500">
           Rien de tout ça ne transite par ce site : la connexion à l&apos;imprimante se fait en local, entre ton PC
           et ta P2S, sur ton propre réseau.
+        </p>
+        <p className="mt-2 text-xs text-slate-500">
+          En déplacement, sans l&apos;app desktop ouverte sur ton réseau ? Connecte ton compte Bambu Lab dans{" "}
+          <a href="/settings" className="text-orange-600 hover:underline">
+            Paramètres
+          </a>{" "}
+          pour piloter ton imprimante et lire l&apos;AMS directement via le cloud Bambu, depuis n&apos;importe où —
+          dans ce cas, cette connexion-là passe bien par les serveurs de Bambu Lab.
         </p>
       </section>
 
@@ -162,6 +174,7 @@ export default async function PrinterPage() {
 
             <div className="mt-4">
               <AmsSlotsView printerId={printer._id.toString()} slots={amsSlots} />
+              {hasBambuCloud && <RefreshFromCloudButton printerId={printer._id.toString()} />}
             </div>
 
             {detectedSuggestions.length > 0 && (

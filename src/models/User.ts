@@ -8,6 +8,24 @@ const EarnedBadgeSchema = new Schema(
   { _id: false }
 );
 
+// Connexion optionnelle au compte cloud Bambu Lab (voir src/lib/bambuCloud.ts) :
+// permet au serveur FilaTrack de parler directement au broker MQTT cloud de
+// Bambu Lab (pause/reprise/arrêt, profil filament AMS, lecture de l'AMS)
+// depuis n'importe où, sans dépendre de l'app desktop ni du réseau local de
+// l'utilisateur. Contrepartie assumée : `accessTokenEnc` est un jeton
+// d'accès à ce compte Bambu, chiffré (jamais en clair, voir
+// secretCrypto.ts) — absent tant que l'utilisateur n'a jamais connecté son
+// compte, ou après une déconnexion volontaire.
+const BambuCloudSchema = new Schema(
+  {
+    email: { type: String, trim: true, lowercase: true },
+    uid: { type: String, trim: true },
+    accessTokenEnc: { type: String },
+    connectedAt: { type: Date },
+  },
+  { _id: false }
+);
+
 const UserSchema = new Schema(
   {
     // Identifiant fixé à l'inscription, affiché en "@name" un peu partout :
@@ -51,6 +69,7 @@ const UserSchema = new Schema(
     // sans partage actif (valeur absente) ne se percutent pas sur l'index
     // unique.
     shareToken: { type: String, index: true, unique: true, sparse: true },
+    bambuCloud: { type: BambuCloudSchema },
   },
   { timestamps: true }
 );
