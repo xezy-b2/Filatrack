@@ -6,8 +6,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Spool } from "@/models/Spool";
+import { FilamentCatalogItem } from "@/models/FilamentCatalogItem";
 import { MATERIALS, DIAMETERS, STATUSES } from "@/lib/constants";
 import { syncBadges } from "@/lib/badges";
+import { mapCatalogMaterialToAppMaterial, stripAlphaFromHex, colorDistance } from "@/lib/filamentCatalogHelpers";
 
 export type ActionState = { error?: string; success?: string } | undefined;
 
@@ -266,4 +268,64 @@ export async function setSpoolStatus(spoolId: string, status: (typeof STATUSES)[
   await syncBadges(userId);
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/spools/${spoolId}`);
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Une couleur "identique" au sens strict n'existe presque jamais entre deux
+// sources différentes (nuances d'un même nom selon la marque/l'écran) : ce
+// seuil (sur ~441 possibles) accepte de petits écarts sans faire remonter
+// une couleur clairement différente.
+const IMAGE_MATCH_COLOR_THRESHOLD = 60;
+
+export type AutoFillImagesResult = { matched: number; total: number };
+
+// Rattrapage en un clic pour les bobines créées avant l'ajout des photos, ou
+// ajoutées à la main / depuis la détection RFID (donc sans passer par le
+// catalogue Filaments qui, lui, fournit déjà l'image au moment de l'ajout) :
+// pour chaque bobine sans photo, cherche dans le catalogue le produit de
+// même marque et même matière dont la couleur se rapproche le plus, et
+// reprend son image si l'écart de couleur reste raisonnable.
+export async function autoFillSpoolImages(): Promise<AutoFillImagesResult> {
+  const userId = await requireUserId();
+  await connectToDatabase();
+
+  const spools = await Spool.find({
+    owner: userId,
+    $or: [{ image: { $exists: false } }, { image: null }, { image: "" }],
+  });
+
+  let matched = 0;
+  for (const spool of spools) {
+    const candidates = await FilamentCatalogItem.find({
+      brand: new RegExp(`^${escapeRegExp(spool.brand)}$`, "i"),
+    })
+      .select("material colorHex8 image")
+      .lean();
+
+    let best: { image: string; distance: number } | undefined;
+    for (const candidate of candidates) {
+      if (!candidate.image || !candidate.colorHex8) continue;
+      if (mapCatalogMaterialToAppMaterial(candidate.material) !== spool.material) continue;
+
+      const hex = stripAlphaFromHex(candidate.colorHex8);
+      if (!hex) continue;
+
+      const distance = colorDistance(spool.colorHex, hex);
+      if (!best || distance < best.distance) {
+        best = { image: candidate.image, distance };
+      }
+    }
+
+    if (best && best.distance <= IMAGE_MATCH_COLOR_THRESHOLD) {
+      spool.image = best.image;
+      await spool.save();
+      matched += 1;
+    }
+  }
+
+  revalidatePath("/dashboard");
+  return { matched, total: spools.length };
 }

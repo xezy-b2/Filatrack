@@ -35,6 +35,18 @@ function normalize(s: string) {
 export default function DashboardSpoolList({ spools: initialSpools }: { spools: SpoolView[] }) {
   const [spools, setSpools] = useState(initialSpools);
   const [selected, setSelected] = useState<SpoolView | null>(null);
+
+  // Resynchronise avec les données serveur après un router.refresh() (ex:
+  // AutoFillImagesButton) — sans ça, les photos retrouvées automatiquement
+  // n'apparaîtraient qu'après un rechargement complet de la page. Ajustement
+  // pendant le rendu plutôt que dans un effect (voir la doc React sur
+  // l'ajustement d'état suite à un changement de prop), pour éviter un
+  // rendu supplémentaire inutile.
+  const [prevInitialSpools, setPrevInitialSpools] = useState(initialSpools);
+  if (initialSpools !== prevInitialSpools) {
+    setPrevInitialSpools(initialSpools);
+    setSpools(initialSpools);
+  }
   const [search, setSearch] = useState("");
   const [material, setMaterial] = useState<string>("toutes");
   const [status, setStatus] = useState<StatusFilter>("non-archivees");

@@ -7,6 +7,7 @@ import { User } from "@/models/User";
 import { serializeSpool } from "@/lib/serialize";
 import StatsBar from "@/components/StatsBar";
 import DashboardSpoolList from "@/components/DashboardSpoolList";
+import AutoFillImagesButton from "@/components/AutoFillImagesButton";
 import { displayName } from "@/lib/displayName";
 
 export const dynamic = "force-dynamic";
@@ -34,12 +35,15 @@ export default async function DashboardPage() {
           </h1>
           <p className="text-sm text-slate-500">Suivi des bobines pour ta Bambu Lab P2S.</p>
         </div>
-        <Link
-          href="/dashboard/spools/new"
-          className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
-        >
-          + Ajouter une bobine
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {spools.length > 0 && <AutoFillImagesButton />}
+          <Link
+            href="/dashboard/spools/new"
+            className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
+          >
+            + Ajouter une bobine
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6">

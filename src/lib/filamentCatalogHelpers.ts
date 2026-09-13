@@ -75,6 +75,24 @@ export function stripAlphaFromHex(hex8?: string | null): string | undefined {
   return match ? `#${match[1]}` : undefined;
 }
 
+// Distance euclidienne entre deux couleurs RVB (0 = identiques, ~441 max) —
+// utilisée pour retrouver automatiquement, parmi les produits du catalogue
+// d'une même marque/matière, celui dont la couleur se rapproche le plus
+// d'une bobine existante (voir autoFillSpoolImages dans actions/spools.ts).
+// Retourne Infinity si l'un des deux hex est invalide, pour écarter le
+// candidat sans planter la comparaison.
+export function colorDistance(hexA: string, hexB: string): number {
+  const a = /^#?([0-9a-fA-F]{6})$/.exec(hexA.trim());
+  const b = /^#?([0-9a-fA-F]{6})$/.exec(hexB.trim());
+  if (!a || !b) return Infinity;
+  const intA = parseInt(a[1], 16);
+  const intB = parseInt(b[1], 16);
+  const dr = ((intA >> 16) & 255) - ((intB >> 16) & 255);
+  const dg = ((intA >> 8) & 255) - ((intB >> 8) & 255);
+  const db = (intA & 255) - (intB & 255);
+  return Math.sqrt(dr * dr + dg * dg + db * db);
+}
+
 // Dérive un nom de couleur lisible depuis le titre du produit, format
 // habituel "Ligne - Couleur" (ex: "CarbonX - Black" -> "Black"). À défaut,
 // retombe sur le titre entier plutôt que de laisser le champ vide (il est
