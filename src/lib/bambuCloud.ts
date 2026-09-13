@@ -253,10 +253,19 @@ function extractPrintStatus(report: BambuReport): CloudPrintStatus | null {
   };
 }
 
+// Durée d'accumulation des paquets après le premier jugé exploitable : un
+// "pushall" ne renvoie presque jamais tout en un seul paquet MQTT — l'état
+// d'impression et le détail de l'AMS arrivent typiquement dans des messages
+// séparés et successifs. Conclure dès le premier (comme la version initiale
+// de cette fonction le faisait) risque de renvoyer un statut d'impression
+// sans jamais avoir vu le bloc AMS, alors qu'il était sur le point d'arriver.
+const COLLECT_WINDOW_MS = 4_000;
+
 // Lit l'état actuel de l'AMS + de l'impression en cours directement depuis le
 // cloud Bambu : connexion, demande explicite d'un rapport complet
-// ("pushall"), attente du premier paquet exploitable, puis fermeture. Utilisé
-// par le bouton "Actualiser depuis le cloud" de /dashboard/printer — une
+// ("pushall"), puis accumulation de tous les paquets reçus pendant une courte
+// fenêtre (voir COLLECT_WINDOW_MS ci-dessus) avant de fermer. Utilisé par le
+// bouton "Actualiser depuis le cloud" de /dashboard/printer — une
 // alternative ponctuelle à la synchro automatique de l'app desktop, utile
 // quand celle-ci ne tourne pas (utilisateur loin de son réseau local).
 export async function fetchCloudPrinterState(
@@ -266,14 +275,19 @@ export async function fetchCloudPrinterState(
   return new Promise((resolve) => {
     const client = connectCloudMqtt(creds);
     let settled = false;
+    let collectTimer: ReturnType<typeof setTimeout> | null = null;
+    const slotsByIndex = new Map<number, CloudAmsSlot>();
+    let printStatus: CloudPrintStatus | null = null;
+
     const finish = (result: BambuCloudResult<{ slots: CloudAmsSlot[]; printStatus: CloudPrintStatus | null }>) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timer);
+      clearTimeout(overallTimer);
+      if (collectTimer) clearTimeout(collectTimer);
       client.end(true);
       resolve(result);
     };
-    const timer = setTimeout(
+    const overallTimer = setTimeout(
       () =>
         finish({
           ok: false,
@@ -300,9 +314,20 @@ export async function fetchCloudPrinterState(
         return;
       }
       const slots = extractSlots(data);
-      const printStatus = extractPrintStatus(data);
-      if (slots.length === 0 && !printStatus) return; // paquet MQTT sans info utile : on attend le suivant
-      finish({ ok: true, data: { slots, printStatus } });
+      const status = extractPrintStatus(data);
+      if (slots.length === 0 && !status) return; // paquet MQTT sans info utile : on attend le suivant
+
+      for (const slot of slots) slotsByIndex.set(slot.index, slot);
+      if (status) printStatus = status;
+
+      // Premier paquet exploitable reçu : on laisse une petite fenêtre pour
+      // que les paquets suivants du même "pushall" arrivent avant de conclure,
+      // plutôt que de renvoyer un résultat partiel immédiatement.
+      if (!collectTimer) {
+        collectTimer = setTimeout(() => {
+          finish({ ok: true, data: { slots: Array.from(slotsByIndex.values()), printStatus } });
+        }, COLLECT_WINDOW_MS);
+      }
     });
 
     client.on("error", (err) => finish({ ok: false, error: friendlyMqttError(err) }));
