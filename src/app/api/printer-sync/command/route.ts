@@ -5,15 +5,24 @@ import { User } from "@/models/User";
 import { Printer } from "@/models/Printer";
 
 // Sondé régulièrement (toutes les ~8s) par l'app desktop pendant qu'elle est
-// connectée en MQTT à l'imprimante, pour savoir si une commande (pause,
-// reprise, arrêt) a été déposée depuis le site (voir sendPrinterCommand
-// dans src/app/actions/printer.ts). Le site ne peut pas contacter
-// l'imprimante directement (réseau local de l'utilisateur, non routable
-// depuis Railway) : c'est l'app desktop qui, elle, publie la commande en
-// MQTT une fois récupérée ici.
+// connectée en MQTT à l'imprimante, pour savoir si une commande a été
+// déposée depuis le site (voir sendPrinterCommand et
+// sendSetFilamentCommand dans src/app/actions/printer.ts) : contrôle
+// d'impression (pause/reprise/arrêt) ou déclaration du profil filament
+// générique d'un slot AMS. Le site ne peut pas contacter l'imprimante
+// directement (réseau local de l'utilisateur, non routable depuis
+// Railway) : c'est l'app desktop qui, elle, publie la commande en MQTT une
+// fois récupérée ici.
 //
 //   GET /api/printer-sync/command?deviceId=<numéro de série>
 //   Authorization: Bearer <clé API>
+//
+//   -> { "command": null }
+//   -> { "command": { "type": "pause" | "resume" | "stop" } }
+//   -> { "command": { "type": "set-filament", "amsId": 0, "trayId": 0,
+//                      "trayInfoIdx": "GFL99", "trayType": "PLA",
+//                      "trayColor": "FF6A13FF", "nozzleTempMin": 190,
+//                      "nozzleTempMax": 220 } }
 //
 // La commande est retirée (consommée) dès qu'elle est renvoyée : au pire
 // une commande peut être perdue si l'app desktop plante juste après l'avoir

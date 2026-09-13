@@ -161,7 +161,7 @@ export default async function PrinterPage() {
             </div>
 
             <div className="mt-4">
-              <AmsSlotsView slots={amsSlots} />
+              <AmsSlotsView printerId={printer._id.toString()} slots={amsSlots} />
             </div>
 
             {detectedSuggestions.length > 0 && (

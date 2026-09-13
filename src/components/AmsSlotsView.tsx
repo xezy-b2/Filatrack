@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { mapTrayTypeToMaterial, normalizeTrayColor } from "@/lib/bambuMaterial";
+import SendFilamentProfileButton from "@/components/SendFilamentProfileButton";
+import type { Material } from "@/lib/constants";
 
 export type AmsSlotView = {
   index: number;
   spool?: {
     id: string;
     brand: string;
-    material: string;
+    material: Material;
     colorName: string;
     colorHex: string;
   };
@@ -18,8 +20,10 @@ export type AmsSlotView = {
 // Aperçu visuel de ce qui est physiquement chargé dans l'AMS en ce moment
 // (couleur + matière détectées par la puce RFID, ou associées à la main via
 // PrinterSlotsForm juste en dessous), plutôt que la seule liste déroulante
-// d'association — un vrai coup d'œil "qu'est-ce qu'il y a dans mon AMS".
-export default function AmsSlotsView({ slots }: { slots: AmsSlotView[] }) {
+// d'association — un vrai coup d'œil "qu'est-ce qu'il y a dans mon AMS". Le
+// petit sélecteur "Envoyer" par slot déclare le profil filament générique
+// correspondant directement sur l'AMS (voir SendFilamentProfileButton.tsx).
+export default function AmsSlotsView({ printerId, slots }: { printerId: string; slots: AmsSlotView[] }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {slots.map((slot) => {
@@ -61,6 +65,13 @@ export default function AmsSlotsView({ slots }: { slots: AmsSlotView[] }) {
             ) : (
               <p className="text-xs text-slate-400">Emplacement vide</p>
             )}
+
+            <SendFilamentProfileButton
+              printerId={printerId}
+              slotIndex={slot.index}
+              initialMaterial={slot.spool?.material ?? mapTrayTypeToMaterial(slot.detectedType)}
+              colorHex={slot.spool?.colorHex}
+            />
           </div>
         );
       })}

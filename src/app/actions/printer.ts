@@ -9,6 +9,8 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Printer } from "@/models/Printer";
 import { User } from "@/models/User";
 import { syncBadges } from "@/lib/badges";
+import { MATERIALS, DEFAULT_TEMPS, type Material } from "@/lib/constants";
+import { getGenericFilamentProfile, toBambuTrayColor } from "@/lib/bambuFilamentProfiles";
 
 export type ActionState = { error?: string; success?: string } | undefined;
 export type ApiKeyActionState = { error?: string; newKey?: string } | undefined;
@@ -138,7 +140,63 @@ export async function sendPrinterCommand(printerId: string, command: PrintComman
   }
 
   await connectToDatabase();
-  const result = await Printer.updateOne({ _id: printerId, owner: userId }, { $set: { pendingCommand: command } });
+  const result = await Printer.updateOne(
+    { _id: printerId, owner: userId },
+    { $set: { pendingCommand: { type: command } } }
+  );
+  if (result.matchedCount === 0) {
+    return { error: "Imprimante introuvable." };
+  }
+
+  return undefined;
+}
+
+// Dépose une commande "déclarer le profil filament" pour un slot AMS,
+// récupérée par l'app desktop de la même façon que pause/reprise/arrêt
+// (voir /api/printer-sync/command), puis traduite en commande MQTT Bambu
+// `ams_filament_setting` — c'est l'équivalent de choisir "Générique PLA" (ou
+// autre) sur l'écran de l'imprimante ou dans Bambu Handy, mais depuis
+// FilaTrack. `colorHex` (optionnel, format FilaTrack #RRGGBB) reprend la
+// couleur de la bobine associée à ce slot quand il y en a une, pour que
+// l'AMS/le slicer affichent la bonne couleur en plus de la bonne matière.
+export async function sendSetFilamentCommand(
+  printerId: string,
+  slotIndex: number,
+  material: Material,
+  colorHex?: string
+): Promise<PrintCommandState> {
+  const userId = await requireUserId();
+
+  if (!MATERIALS.includes(material)) {
+    return { error: "Matière invalide." };
+  }
+  const profile = getGenericFilamentProfile(material);
+  if (!profile) {
+    return { error: "Pas de profil générique Bambu connu pour cette matière." };
+  }
+  if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex > 15) {
+    return { error: "Slot invalide." };
+  }
+
+  await connectToDatabase();
+  const temps = DEFAULT_TEMPS[material];
+  const result = await Printer.updateOne(
+    { _id: printerId, owner: userId },
+    {
+      $set: {
+        pendingCommand: {
+          type: "set-filament",
+          amsId: Math.floor(slotIndex / 4),
+          trayId: slotIndex % 4,
+          trayInfoIdx: profile.trayInfoIdx,
+          trayType: profile.trayType,
+          trayColor: toBambuTrayColor(colorHex),
+          nozzleTempMin: temps.nozzleMin,
+          nozzleTempMax: temps.nozzleMax,
+        },
+      },
+    }
+  );
   if (result.matchedCount === 0) {
     return { error: "Imprimante introuvable." };
   }

@@ -35,6 +35,27 @@ const CurrentPrintSchema = new Schema(
   { _id: false }
 );
 
+// Commande en attente de livraison à l'app desktop (voir pendingCommand
+// plus bas). "pause"/"resume"/"stop" n'utilisent que `type` ; "set-filament"
+// (déclarer le profil filament générique d'un slot AMS, voir
+// sendSetFilamentCommand dans actions/printer.ts et bambuFilamentProfiles.ts)
+// utilise les champs additionnels, traduits par l'app desktop en commande
+// MQTT Bambu `ams_filament_setting`.
+const PendingCommandSchema = new Schema(
+  {
+    type: { type: String, enum: ["pause", "resume", "stop", "set-filament"], required: true },
+    amsId: { type: Number, min: 0 },
+    trayId: { type: Number, min: 0 },
+    trayInfoIdx: { type: String, trim: true, maxlength: 20 },
+    trayType: { type: String, trim: true, maxlength: 20 },
+    // Format Bambu RRGGBBAA (alpha toujours FF), pas le #RRGGBB de FilaTrack.
+    trayColor: { type: String, trim: true, maxlength: 8 },
+    nozzleTempMin: { type: Number },
+    nozzleTempMax: { type: Number },
+  },
+  { _id: false }
+);
+
 const PrinterSchema = new Schema(
   {
     owner: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
@@ -50,12 +71,12 @@ const PrinterSchema = new Schema(
     slots: { type: [PrinterSlotSchema], default: [] },
     lastSyncAt: { type: Date },
     currentPrint: { type: CurrentPrintSchema },
-    // Commande de contrôle d'impression (pause/reprise/arrêt) en attente de
+    // Commande (contrôle d'impression ou réglage filament AMS) en attente de
     // livraison à l'app desktop, qui la récupère par polling puis la publie
     // en MQTT vers l'imprimante. Consommée (remise à undefined) dès qu'elle
     // est récupérée — au pire une commande peut être perdue si l'app plante
     // juste après l'avoir récupérée, ce qui est acceptable pour cet usage.
-    pendingCommand: { type: String, enum: ["pause", "resume", "stop"] },
+    pendingCommand: { type: PendingCommandSchema },
   },
   { timestamps: true }
 );
