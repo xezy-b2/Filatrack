@@ -8,6 +8,7 @@ import PrinterForm from "@/components/PrinterForm";
 import PrinterSlotsForm from "@/components/PrinterSlotsForm";
 import DeletePrinterButton from "@/components/DeletePrinterButton";
 import PrintStatusCard, { type PrinterPrintStatus } from "@/components/PrintStatusCard";
+import AmsSlotsView, { type AmsSlotView } from "@/components/AmsSlotsView";
 import { mapTrayTypeToMaterial, normalizeTrayColor } from "@/lib/bambuMaterial";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,20 @@ export default async function PrinterPage() {
     id: s._id.toString(),
     label: `${s.colorName} · ${s.material} (${s.brand})`,
   }));
+
+  // Les slots référencent des bobines par id, potentiellement archivées ou
+  // absentes de `spools` (filtré aux non-archivées ci-dessus) : on les
+  // recherche à part pour que l'aperçu visuel de l'AMS reste correct même
+  // pour une bobine archivée encore physiquement dans l'AMS.
+  const linkedSpoolIds = printers.flatMap((p) =>
+    (p.slots as { spool?: unknown }[]).map((s) => s.spool).filter(Boolean)
+  );
+  const linkedSpools = linkedSpoolIds.length
+    ? await Spool.find({ _id: { $in: linkedSpoolIds }, owner: session.user.id })
+        .select("brand material colorName colorHex")
+        .lean()
+    : [];
+  const linkedSpoolById = new Map(linkedSpools.map((s) => [s._id.toString(), s]));
 
   const activePrinters: PrinterPrintStatus[] = printers
     .map((p) => ({
@@ -108,6 +123,25 @@ export default async function PrinterPage() {
             colorHex: normalizeTrayColor(s.detectedColor),
           }));
 
+        const amsSlots: AmsSlotView[] = slots.map((s) => {
+          const linked = s.spool ? linkedSpoolById.get(String(s.spool)) : undefined;
+          return {
+            index: s.index,
+            spool: linked
+              ? {
+                  id: String(s.spool),
+                  brand: linked.brand,
+                  material: linked.material,
+                  colorName: linked.colorName,
+                  colorHex: linked.colorHex,
+                }
+              : undefined,
+            detectedType: s.detectedType,
+            detectedColor: s.detectedColor,
+            lastRemainPercent: s.lastRemainPercent ?? undefined,
+          };
+        });
+
         return (
           <section
             key={printer._id.toString()}
@@ -124,6 +158,10 @@ export default async function PrinterPage() {
                 </p>
               </div>
               <DeletePrinterButton printerId={printer._id.toString()} />
+            </div>
+
+            <div className="mt-4">
+              <AmsSlotsView slots={amsSlots} />
             </div>
 
             {detectedSuggestions.length > 0 && (
