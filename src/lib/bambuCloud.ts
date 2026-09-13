@@ -171,7 +171,12 @@ export async function sendCloudPrintCommand(
     );
 
     client.on("connect", () => {
-      client.publish(`device/${deviceId}/request`, JSON.stringify(payload), (err) => {
+      // QoS 1 plutôt que le QoS 0 par défaut : le callback attend alors un
+      // vrai accusé de réception du broker (PUBACK), pas seulement l'écriture
+      // locale sur le socket — une confirmation plus significative, même si
+      // ça ne garantit toujours pas que l'imprimante elle-même a traité la
+      // commande (voir la vérification a posteriori dans sendSetFilamentCommand).
+      client.publish(`device/${deviceId}/request`, JSON.stringify(payload), { qos: 1 }, (err) => {
         if (err) finish({ ok: false, error: err.message });
         else finish({ ok: true, data: true });
       });

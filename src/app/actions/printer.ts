@@ -128,7 +128,7 @@ export async function revokeApiKey() {
 
 const PRINT_COMMANDS = ["pause", "resume", "stop"] as const;
 export type PrintCommand = (typeof PRINT_COMMANDS)[number];
-export type PrintCommandState = { error?: string; viaCloud?: boolean } | undefined;
+export type PrintCommandState = { error?: string; viaCloud?: boolean; confirmed?: boolean } | undefined;
 
 // Si l'utilisateur a connecté son compte Bambu Lab (voir actions/bambuCloud.ts
 // et /settings), on peut parler directement au cloud Bambu — plus rapide (pas
@@ -227,8 +227,21 @@ export async function sendSetFilamentCommand(
     const printer = await Printer.findOne({ _id: printerId, owner: userId }).select("deviceId").lean();
     if (!printer) return { error: "Imprimante introuvable." };
 
-    const result = await sendCloudPrintCommand(cloudCreds, printer.deviceId, buildBambuCommandPayload(commandFields));
-    return result.ok ? { viaCloud: true } : { error: result.error };
+    const sendResult = await sendCloudPrintCommand(cloudCreds, printer.deviceId, buildBambuCommandPayload(commandFields));
+    if (!sendResult.ok) return { error: sendResult.error };
+
+    // La publication MQTT ayant réussi ne garantit pas que l'imprimante a
+    // réellement appliqué le changement (QoS 0, pas d'accusé de réception
+    // applicatif) — on relit l'AMS juste après pour vérifier que ce slot
+    // affiche bien la matière envoyée, plutôt que d'annoncer un succès qu'on
+    // n'a pas pu confirmer.
+    const verify = await fetchCloudPrinterState(cloudCreds, printer.deviceId);
+    if (verify.ok) {
+      const slot = verify.data.slots.find((s) => s.index === slotIndex);
+      const confirmed = !!slot?.trayType && slot.trayType.toUpperCase() === profile.trayType.toUpperCase();
+      return { viaCloud: true, confirmed };
+    }
+    return { viaCloud: true }; // envoyé, mais vérification indisponible (confirmed laissé indéfini)
   }
 
   const result = await Printer.updateOne(

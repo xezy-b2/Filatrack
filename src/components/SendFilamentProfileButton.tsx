@@ -38,7 +38,11 @@ export default function SendFilamentProfileButton({
       setMessage(
         result?.error ??
           (result?.viaCloud
-            ? "Envoyé directement via le cloud Bambu Lab."
+            ? result.confirmed === true
+              ? "Envoyé et confirmé par l'imprimante (profil mis à jour sur ce slot)."
+              : result.confirmed === false
+                ? "Envoyé, mais l'imprimante ne montre pas encore ce changement sur ce slot — vérifie sur l'écran ou dans Bambu Handy."
+                : "Envoyé directement via le cloud Bambu Lab (non vérifié)."
             : "Envoyé — l'app desktop l'appliquera sur l'AMS dans quelques secondes.")
       );
     });
