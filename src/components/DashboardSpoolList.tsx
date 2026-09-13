@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import SpoolCard from "@/components/SpoolCard";
+import SpoolPanel from "@/components/SpoolPanel";
 import { MATERIALS, type SpoolStatus } from "@/lib/constants";
 import type { SpoolView } from "@/lib/types";
 
@@ -31,12 +32,19 @@ function normalize(s: string) {
     .replace(/[\u0300-\u036f]/g, ""); // retire les accents pour une recherche plus tolérante
 }
 
-export default function DashboardSpoolList({ spools }: { spools: SpoolView[] }) {
+export default function DashboardSpoolList({ spools: initialSpools }: { spools: SpoolView[] }) {
+  const [spools, setSpools] = useState(initialSpools);
+  const [selected, setSelected] = useState<SpoolView | null>(null);
   const [search, setSearch] = useState("");
   const [material, setMaterial] = useState<string>("toutes");
   const [status, setStatus] = useState<StatusFilter>("non-archivees");
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [sort, setSort] = useState<SortOption>("remaining-asc");
+
+  function handleUpdate(updated: SpoolView) {
+    setSpools((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+    setSelected(updated);
+  }
 
   const materialsPresent = useMemo(() => {
     const set = new Set(spools.map((s) => s.material));
@@ -155,9 +163,18 @@ export default function DashboardSpoolList({ spools }: { spools: SpoolView[] }) 
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((spool) => (
-            <SpoolCard key={spool.id} spool={spool} href={`/dashboard/spools/${spool.id}`} />
+            <SpoolCard key={spool.id} spool={spool} onClick={() => setSelected(spool)} />
           ))}
         </div>
+      )}
+
+      {selected && (
+        <SpoolPanel
+          key={selected.id}
+          spool={selected}
+          onClose={() => setSelected(null)}
+          onUpdate={handleUpdate}
+        />
       )}
     </div>
   );

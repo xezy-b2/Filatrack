@@ -9,7 +9,7 @@ import { Spool } from "@/models/Spool";
 import { MATERIALS, DIAMETERS, STATUSES } from "@/lib/constants";
 import { syncBadges } from "@/lib/badges";
 
-export type ActionState = { error?: string } | undefined;
+export type ActionState = { error?: string; success?: string } | undefined;
 
 async function requireUserId(): Promise<string> {
   const session = await auth();
@@ -25,6 +25,21 @@ const numberOrUndefined = (v: FormDataEntryValue | null) =>
 const dateOrUndefined = (v: FormDataEntryValue | null) =>
   v === null || v === "" ? undefined : new Date(v.toString());
 
+// ~1.5 Mo de texte base64 ≈ photo source d'environ 1 Mo une fois
+// redimensionnée côté client (voir SpoolImageUploader.tsx) ; cette limite ne
+// fait qu'empêcher les abus. Une image reprise depuis le catalogue Filaments
+// arrive ici sous forme d'URL http(s), beaucoup plus courte.
+const MAX_IMAGE_LENGTH = 1_500_000;
+const imageField = z
+  .string()
+  .trim()
+  .max(MAX_IMAGE_LENGTH, "Image trop lourde, réessaie avec une photo plus légère.")
+  .refine(
+    (v) => v === "" || v.startsWith("data:image/") || v.startsWith("http://") || v.startsWith("https://"),
+    "Format d'image invalide."
+  )
+  .optional();
+
 const SpoolSchema = z.object({
   brand: z.string().trim().min(1).max(60),
   material: z.enum(MATERIALS),
@@ -32,6 +47,8 @@ const SpoolSchema = z.object({
   colorHex: z.string().trim().min(4).max(9),
   diameter: z.enum(DIAMETERS),
   rfidTag: z.string().trim().max(120).optional(),
+  image: imageField,
+  removeImage: z.string().optional(),
   initialWeight: z.number().min(0),
   emptySpoolWeight: z.number().min(0).optional(),
   remainingWeight: z.number().min(0),
@@ -58,6 +75,8 @@ function parseSpoolForm(formData: FormData) {
     colorHex: formData.get("colorHex") || "#cccccc",
     diameter: formData.get("diameter") || "1.75",
     rfidTag: formData.get("rfidTag") || undefined,
+    image: formData.get("image") || undefined,
+    removeImage: formData.get("removeImage") || undefined,
     initialWeight: numberOrUndefined(formData.get("initialWeight")) ?? 1000,
     emptySpoolWeight: numberOrUndefined(formData.get("emptySpoolWeight")),
     remainingWeight:
@@ -89,6 +108,8 @@ export async function createSpool(_prevState: ActionState, formData: FormData): 
   }
 
   await connectToDatabase();
+  // removeImage n'a de sens que pour une bobine déjà existante (updateSpool) ;
+  // ce n'est pas un champ du modèle donc il est simplement ignoré ici.
   const spool = await Spool.create({ ...parsed.data, owner: userId });
   await syncBadges(userId);
 
@@ -110,12 +131,88 @@ export async function updateSpool(spoolId: string, _prevState: ActionState, form
     return { error: "Bobine introuvable." };
   }
 
-  Object.assign(spool, parsed.data);
+  // image/removeImage sont traités à part : sans ça, un formulaire soumis
+  // sans changer la photo (champ "image" vide car rien de nouveau choisi)
+  // effacerait l'image existante via le Object.assign générique ci-dessous.
+  const { image, removeImage, ...rest } = parsed.data;
+  Object.assign(spool, rest);
+  if (removeImage === "true") {
+    spool.image = undefined;
+  } else if (image) {
+    spool.image = image;
+  }
   await spool.save();
 
   revalidatePath("/dashboard");
   revalidatePath(`/dashboard/spools/${spoolId}`);
   redirect(`/dashboard/spools/${spoolId}`);
+}
+
+const QuickUpdateSchema = z.object({
+  remainingWeight: z.number().min(0).optional(),
+  location: z.string().trim().max(60).optional(),
+  printerAssigned: z.string().trim().max(60).optional(),
+  image: imageField,
+  removeImage: z.string().optional(),
+});
+
+// Mises à jour rapides depuis le panneau latéral de la bobine (photo, poids
+// restant via le curseur, emplacement, imprimante associée) : contrairement
+// à updateSpool, ne redirige pas (le panneau reste ouvert par-dessus le
+// tableau de bord) et ne touche que les champs effectivement fournis, pour
+// pouvoir être appelée avec un seul champ à la fois sans exiger tout le
+// formulaire complet.
+export async function quickUpdateSpool(
+  spoolId: string,
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const userId = await requireUserId();
+
+  const parsed = QuickUpdateSchema.safeParse({
+    remainingWeight: numberOrUndefined(formData.get("remainingWeight")),
+    location: formData.get("location") || undefined,
+    printerAssigned: formData.get("printerAssigned") || undefined,
+    image: formData.get("image") || undefined,
+    removeImage: formData.get("removeImage") || undefined,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
+  }
+
+  await connectToDatabase();
+  const spool = await Spool.findOne({ _id: spoolId, owner: userId });
+  if (!spool) {
+    return { error: "Bobine introuvable." };
+  }
+
+  if (parsed.data.remainingWeight !== undefined) {
+    spool.remainingWeight = parsed.data.remainingWeight;
+    if (spool.remainingWeight <= 0) {
+      spool.status = "vide";
+    } else if (spool.status === "vide") {
+      spool.status = "active";
+    }
+  }
+  if (parsed.data.location !== undefined) {
+    spool.location = parsed.data.location;
+  }
+  if (parsed.data.printerAssigned !== undefined) {
+    spool.printerAssigned = parsed.data.printerAssigned;
+  }
+  if (parsed.data.removeImage === "true") {
+    spool.image = undefined;
+  } else if (parsed.data.image) {
+    spool.image = parsed.data.image;
+  }
+
+  await spool.save();
+  await syncBadges(userId);
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/dashboard/spools/${spoolId}`);
+  return { success: "Bobine mise à jour." };
 }
 
 export async function deleteSpool(spoolId: string) {

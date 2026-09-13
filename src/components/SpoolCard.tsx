@@ -6,7 +6,15 @@ function isLowStock(spool: SpoolView) {
   return spool.status === "active" && spool.remainingWeight <= spool.lowStockThreshold;
 }
 
-export default function SpoolCard({ spool, href }: { spool: SpoolView; href?: string }) {
+export default function SpoolCard({
+  spool,
+  href,
+  onClick,
+}: {
+  spool: SpoolView;
+  href?: string;
+  onClick?: () => void;
+}) {
   const pct = Math.max(
     0,
     Math.min(100, Math.round((spool.remainingWeight / Math.max(spool.initialWeight, 1)) * 100))
@@ -22,12 +30,19 @@ export default function SpoolCard({ spool, href }: { spool: SpoolView; href?: st
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span
-            className="h-5 w-5 shrink-0 rounded-full border border-black/10"
-            style={{ backgroundColor: spool.colorHex }}
-            title={spool.colorName}
-          />
+        <div className="flex items-center gap-3">
+          {spool.image ? (
+            <span className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+              {/* eslint-disable-next-line @next/next/no-img-element -- data URI ou URL externe, pas d'optimisation next/image utile ici */}
+              <img src={spool.image} alt="" className="h-full w-full object-contain" />
+            </span>
+          ) : (
+            <span
+              className="h-5 w-5 shrink-0 rounded-full border border-black/10"
+              style={{ backgroundColor: spool.colorHex }}
+              title={spool.colorName}
+            />
+          )}
           <div>
             <p className="font-semibold text-slate-900 dark:text-white">
               {spool.brand} · {spool.material}
@@ -67,6 +82,14 @@ export default function SpoolCard({ spool, href }: { spool: SpoolView; href?: st
       </div>
     </div>
   );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className="block h-full w-full text-left">
+        {content}
+      </button>
+    );
+  }
 
   if (!href) return content;
 

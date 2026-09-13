@@ -16,6 +16,7 @@ export function serializeSpool(doc: any): SpoolView {
     colorHex: doc.colorHex,
     diameter: doc.diameter,
     rfidTag: doc.rfidTag,
+    image: doc.image,
     initialWeight: doc.initialWeight,
     emptySpoolWeight: doc.emptySpoolWeight,
     remainingWeight: doc.remainingWeight,

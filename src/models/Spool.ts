@@ -21,6 +21,12 @@ const SpoolSchema = new Schema(
     colorHex: { type: String, required: true, default: "#cccccc" },
     diameter: { type: String, enum: DIAMETERS, default: "1.75" },
     rfidTag: { type: String, trim: true, maxlength: 120 },
+    // Photo de la bobine : soit une image uploadée par l'utilisateur (data
+    // URI base64, redimensionnée côté client), soit l'URL de l'image reprise
+    // automatiquement depuis le catalogue Filaments au moment de l'ajout.
+    // Absent tant que l'utilisateur n'a rien renseigné (pastille de couleur
+    // affichée à la place, voir SpoolCard).
+    image: { type: String },
 
     // Poids
     initialWeight: { type: Number, required: true, min: 0, default: 1000 },

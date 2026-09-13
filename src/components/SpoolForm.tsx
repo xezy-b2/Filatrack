@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import SpoolImageUploader from "@/components/SpoolImageUploader";
 import {
   MATERIALS,
   DIAMETERS,
@@ -37,6 +38,7 @@ type SpoolFormValues = {
   printerAssigned?: string;
   status?: string;
   notes?: string;
+  image?: string;
 };
 
 export default function SpoolForm({
@@ -52,6 +54,7 @@ export default function SpoolForm({
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, undefined);
   const defaultTemps = DEFAULT_TEMPS[initialData?.material ?? "PLA"];
+  const [image, setImage] = useState<string | undefined>(initialData?.image);
 
   const inputClass =
     "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500";
@@ -63,6 +66,19 @@ export default function SpoolForm({
         <legend className="col-span-full text-sm font-semibold uppercase tracking-wide text-orange-600">
           Identification
         </legend>
+
+        <div className="col-span-full">
+          <p className={labelClass}>Photo</p>
+          <div className="mt-1">
+            <SpoolImageUploader initialImage={initialData?.image} onChange={(url) => setImage(url ?? undefined)} />
+          </div>
+          <input type="hidden" name="image" value={image ?? ""} />
+          <input
+            type="hidden"
+            name="removeImage"
+            value={initialData?.image && !image ? "true" : "false"}
+          />
+        </div>
 
         <div>
           <label className={labelClass} htmlFor="brand">Marque</label>

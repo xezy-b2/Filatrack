@@ -382,6 +382,7 @@ export function buildAddToInventoryHref(item: {
   material: string;
   colorHex8?: string;
   weightGrams?: number;
+  image?: string;
 }): string {
   const colorHex = stripAlphaFromHex(item.colorHex8);
   const colorName = deriveColorName(item.title);
@@ -393,6 +394,7 @@ export function buildAddToInventoryHref(item: {
   params.set("colorName", colorName);
   if (colorHex) params.set("colorHex", colorHex);
   if (item.weightGrams) params.set("initialWeight", String(item.weightGrams));
+  if (item.image) params.set("image", item.image);
 
   return `/dashboard/spools/new?${params.toString()}`;
 }

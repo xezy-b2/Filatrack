@@ -16,6 +16,7 @@ export type SpoolView = {
   colorHex: string;
   diameter: string;
   rfidTag?: string;
+  image?: string;
   initialWeight: number;
   emptySpoolWeight?: number;
   remainingWeight: number;

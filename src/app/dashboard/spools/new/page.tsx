@@ -33,6 +33,8 @@ export default async function NewSpoolPage({
     rawInitialWeight !== undefined && Number.isFinite(rawInitialWeight) && rawInitialWeight > 0
       ? Math.round(rawInitialWeight)
       : undefined;
+  const rawImage = typeof params.image === "string" ? params.image : undefined;
+  const image = rawImage && /^https?:\/\//.test(rawImage) ? rawImage : undefined;
 
   const fromCatalog = params.source === "catalogue";
   const detectedFromRfid = !fromCatalog && !!(material || colorHex);
@@ -61,7 +63,7 @@ export default async function NewSpoolPage({
         <SpoolForm
           action={createSpool}
           submitLabel="Ajouter la bobine"
-          initialData={{ material, colorHex, brand, colorName, initialWeight }}
+          initialData={{ material, colorHex, brand, colorName, initialWeight, image }}
         />
       </div>
     </div>
