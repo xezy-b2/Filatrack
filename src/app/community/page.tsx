@@ -9,6 +9,7 @@ import type { MemberSummary } from "@/lib/types";
 import Avatar from "@/components/Avatar";
 import BadgeShowcase from "@/components/BadgeShowcase";
 import { displayName } from "@/lib/displayName";
+import { stripPrivateBadgeIds } from "@/lib/badges";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,9 @@ export default async function CommunityPage() {
       pseudo: u.pseudo ?? undefined,
       avatar: u.avatar,
       printerModel: u.printerModel,
-      showcaseBadges: u.showcaseBadges ?? [],
+      // "fondateur" (et tout futur badge "privé") reste réservé à /profile,
+      // même sur sa propre carte dans cette liste.
+      showcaseBadges: stripPrivateBadgeIds(u.showcaseBadges ?? []),
       spoolCount: stats?.spoolCount ?? 0,
       totalRemainingWeight: stats?.totalRemainingWeight ?? 0,
       lowStockCount: stats?.lowStockCount ?? 0,

@@ -1,7 +1,17 @@
 import { connectToDatabase } from "@/lib/mongodb";
 import { Spool } from "@/models/Spool";
 import { User } from "@/models/User";
-import { BADGES, BADGE_MAP, OG_BADGE_DEADLINE, FOUNDER_EMAIL, type BadgeId, type BadgeDef } from "@/lib/badgeDefs";
+import {
+  BADGES,
+  BADGE_MAP,
+  OG_BADGE_DEADLINE,
+  FOUNDER_EMAIL,
+  stripPrivateBadges,
+  stripPrivateBadgeIds,
+  PUBLIC_BADGE_COUNT,
+  type BadgeId,
+  type BadgeDef,
+} from "@/lib/badgeDefs";
 import { createNotification } from "@/lib/notify";
 
 // Ce module contient la logique serveur (accès base de données) pour
@@ -10,7 +20,7 @@ import { createNotification } from "@/lib/notify";
 // mongoose — c'est ce fichier-ci qui ne doit JAMAIS être importé par un
 // Client Component (voir BadgeIcon/BadgeShowcase/BadgeShowcaseForm, qui
 // importent badgeDefs.ts directement pour cette raison).
-export { BADGES, BADGE_MAP, OG_BADGE_DEADLINE };
+export { BADGES, BADGE_MAP, OG_BADGE_DEADLINE, stripPrivateBadges, stripPrivateBadgeIds, PUBLIC_BADGE_COUNT };
 export type { BadgeId, BadgeDef };
 
 type Stats = {

@@ -1,14 +1,23 @@
-import { BADGES } from "@/lib/badgeDefs";
+import { BADGES, PRIVATE_BADGE_IDS } from "@/lib/badgeDefs";
 import BadgeIcon from "@/components/BadgeIcon";
 
 type EarnedBadge = { id: string; earnedAt: string | Date };
 
-export default function BadgeGrid({ earned }: { earned: EarnedBadge[] }) {
+export default function BadgeGrid({
+  earned,
+  hidePrivate = false,
+}: {
+  earned: EarnedBadge[];
+  /** true sur une page visible par d'autres membres (fiche communauté, partage public) : masque
+   *  entièrement les badges "privés" (ex: "fondateur"), y compris leur case verrouillée. */
+  hidePrivate?: boolean;
+}) {
   const earnedMap = new Map(earned.map((b) => [b.id, b.earnedAt]));
+  const visibleBadges = hidePrivate ? BADGES.filter((b) => !PRIVATE_BADGE_IDS.has(b.id)) : BADGES;
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      {BADGES.map((badge) => {
+      {visibleBadges.map((badge) => {
         const earnedAt = earnedMap.get(badge.id);
         const isEarned = !!earnedAt;
         return (

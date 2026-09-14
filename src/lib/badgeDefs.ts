@@ -28,6 +28,31 @@ export type BadgeDef = {
   description: string;
 };
 
+// Badges volontairement absents de toute vue publique (fiche communauté,
+// page de partage) — gagnés ou non : visibles uniquement sur /profile, pour
+// le titulaire lui-même. "fondateur" est jusqu'ici le seul cas — ça n'a
+// d'intérêt à afficher (même comme case verrouillée) que pour la personne
+// concernée, pas pour le reste de la communauté. Utiliser
+// `stripPrivateBadges`/`stripPrivateBadgeIds` ci-dessous avant tout rendu
+// sur une page visible par d'autres membres (BadgeGrid s'en charge lui-même
+// pour la grille complète via sa prop `hidePrivate`).
+export const PRIVATE_BADGE_IDS: ReadonlySet<BadgeId> = new Set(["fondateur"]);
+
+// Type volontairement concret (pas générique) : passé au travers d'un
+// générique, le type précis des sous-documents Mongoose "lean" (ex:
+// member.badges) s'effondre parfois au seul type de la contrainte lors de
+// l'inférence — un piège TypeScript connu avec les tableaux de
+// sous-documents. Ce type correspond à `EarnedBadge` dans BadgeGrid.tsx.
+export type EarnedBadgeLike = { id: string; earnedAt: Date | string };
+
+export function stripPrivateBadges(badges: EarnedBadgeLike[]): EarnedBadgeLike[] {
+  return badges.filter((b) => !PRIVATE_BADGE_IDS.has(b.id as BadgeId));
+}
+
+export function stripPrivateBadgeIds(ids: string[]): string[] {
+  return ids.filter((id) => !PRIVATE_BADGE_IDS.has(id as BadgeId));
+}
+
 // Date limite d'inscription pour obtenir le badge "OG" (voir plus bas) :
 // tout compte créé avant cette date le garde pour toujours, personne d'autre
 // ne peut plus l'obtenir après.
@@ -126,3 +151,8 @@ export const BADGES: BadgeDef[] = [
 export const BADGE_MAP: Record<BadgeId, BadgeDef> = Object.fromEntries(
   BADGES.map((b) => [b.id, b])
 ) as Record<BadgeId, BadgeDef>;
+
+// Nombre de badges affichés dans une grille publique (BadgeGrid avec
+// hidePrivate) — pour que le ratio "X / Y" affiché à côté d'une fiche
+// communauté ou d'une page de partage reste cohérent avec la grille.
+export const PUBLIC_BADGE_COUNT = BADGES.filter((b) => !PRIVATE_BADGE_IDS.has(b.id)).length;

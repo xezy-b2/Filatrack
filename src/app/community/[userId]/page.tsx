@@ -11,7 +11,7 @@ import Avatar from "@/components/Avatar";
 import BadgeGrid from "@/components/BadgeGrid";
 import BadgeShowcase from "@/components/BadgeShowcase";
 import MemberProfileTabs from "@/components/MemberProfileTabs";
-import { BADGES } from "@/lib/badges";
+import { stripPrivateBadges, stripPrivateBadgeIds, PUBLIC_BADGE_COUNT } from "@/lib/badges";
 import { displayName } from "@/lib/displayName";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +41,10 @@ export default async function MemberInventoryPage(props: PageProps<"/community/[
     .sort({ remainingWeight: 1 })
     .lean();
   const spools = docs.map(serializeSpool);
-  const earnedBadges = member.badges ?? [];
+  // Certains badges (ex: "fondateur") sont volontairement réservés à
+  // /profile et masqués sur toute page visible par d'autres membres.
+  const earnedBadges = stripPrivateBadges(member.badges ?? []);
+  const showcaseBadges = stripPrivateBadgeIds(member.showcaseBadges ?? []);
   const joinedAt = member.createdAt ? new Date(member.createdAt) : null;
 
   const spoolsContent =
@@ -78,11 +81,11 @@ export default async function MemberInventoryPage(props: PageProps<"/community/[
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Badges</h2>
           <p className="text-sm text-slate-500">
-            {earnedBadges.length} / {BADGES.length}
+            {earnedBadges.length} / {PUBLIC_BADGE_COUNT}
           </p>
         </div>
         <div className="mt-4">
-          <BadgeGrid earned={earnedBadges} />
+          <BadgeGrid earned={earnedBadges} hidePrivate />
         </div>
       </div>
     </div>
@@ -102,9 +105,9 @@ export default async function MemberInventoryPage(props: PageProps<"/community/[
               Inventaire de {displayName(member)}
             </h1>
             <p className="text-sm text-slate-400 dark:text-slate-500">@{member.name}</p>
-            {member.showcaseBadges && member.showcaseBadges.length > 0 && (
+            {showcaseBadges.length > 0 && (
               <div className="mt-1">
-                <BadgeShowcase badgeIds={member.showcaseBadges} />
+                <BadgeShowcase badgeIds={showcaseBadges} />
               </div>
             )}
             {member.printerModel && <p className="mt-1 text-sm text-slate-500">🖨️ {member.printerModel}</p>}
