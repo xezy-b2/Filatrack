@@ -14,10 +14,8 @@ export default async function NewSpoolPage({
     redirect("/login");
   }
 
-  // Pré-remplissage optionnel depuis deux sources : la suggestion "bobine
-  // détectée" de /dashboard/printer (matière/couleur lues via la puce RFID
-  // de l'AMS), ou un item du catalogue /dashboard/filaments (source=catalogue,
-  // avec en plus marque/couleur/poids déjà connus).
+  // Pré-remplissage optionnel depuis un item du catalogue /dashboard/filaments
+  // (source=catalogue, avec marque/couleur/poids déjà connus).
   const params = await searchParams;
   const rawMaterial = typeof params.material === "string" ? params.material : undefined;
   const material = MATERIALS.includes(rawMaterial as Material) ? (rawMaterial as Material) : undefined;

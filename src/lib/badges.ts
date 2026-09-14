@@ -1,7 +1,6 @@
 import { connectToDatabase } from "@/lib/mongodb";
 import { Spool } from "@/models/Spool";
 import { User } from "@/models/User";
-import { Printer } from "@/models/Printer";
 import { BADGES, BADGE_MAP, OG_BADGE_DEADLINE, FOUNDER_EMAIL, type BadgeId, type BadgeDef } from "@/lib/badgeDefs";
 import { createNotification } from "@/lib/notify";
 
@@ -24,7 +23,6 @@ type Stats = {
   hasAvatar: boolean;
   hasPrinterModel: boolean;
   accountAgeDays: number;
-  hasPrinterConfigured: boolean;
   createdAt: Date | null;
   email: string;
 };
@@ -47,7 +45,6 @@ function computeEarned(stats: Stats): BadgeId[] {
   if (stats.hasAvatar) earned.push("portrait");
   if (stats.hasPrinterModel) earned.push("bien-equipe");
   if (stats.accountAgeDays >= 365) earned.push("veteran");
-  if (stats.hasPrinterConfigured) earned.push("automatise");
   return earned;
 }
 
@@ -58,16 +55,15 @@ function computeEarned(stats: Stats): BadgeId[] {
  *
  * Sans effet notable si appelée souvent : à appeler après toute action qui
  * pourrait débloquer un badge (ajout de bobine, log d'usage, mise à jour du
- * profil, connexion d'une imprimante...) ainsi qu'à l'affichage de la page
- * profil pour rattraper les badges sans déclencheur dédié (ex: "Vétéran").
+ * profil...) ainsi qu'à l'affichage de la page profil pour rattraper les
+ * badges sans déclencheur dédié (ex: "Vétéran").
  */
 export async function syncBadges(userId: string): Promise<BadgeId[]> {
   await connectToDatabase();
 
-  const [user, spools, printerCount] = await Promise.all([
+  const [user, spools] = await Promise.all([
     User.findById(userId).select("email avatar printerModel badges createdAt").lean(),
     Spool.find({ owner: userId }).select("colorHex material status usageLog").lean(),
-    Printer.countDocuments({ owner: userId }),
   ]);
 
   if (!user) return [];
@@ -95,7 +91,6 @@ export async function syncBadges(userId: string): Promise<BadgeId[]> {
     hasAvatar: !!user.avatar,
     hasPrinterModel: !!user.printerModel,
     accountAgeDays,
-    hasPrinterConfigured: printerCount > 0,
     createdAt: user.createdAt ? new Date(user.createdAt) : null,
     email: user.email ?? "",
   };

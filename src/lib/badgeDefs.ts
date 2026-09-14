@@ -20,8 +20,7 @@ export type BadgeId =
   | "archiviste"
   | "portrait"
   | "bien-equipe"
-  | "veteran"
-  | "automatise";
+  | "veteran";
 
 export type BadgeDef = {
   id: BadgeId;
@@ -121,11 +120,6 @@ export const BADGES: BadgeDef[] = [
     id: "veteran",
     label: "Vétéran",
     description: "Avoir un compte FilaTrack depuis plus d'un an.",
-  },
-  {
-    id: "automatise",
-    label: "Automatisé",
-    description: "Connecter une imprimante Bambu Lab (AMS) pour un suivi automatique du poids.",
   },
 ];
 

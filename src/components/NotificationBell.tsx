@@ -14,8 +14,6 @@ const POLL_INTERVAL_MS = 30_000;
 
 const TYPE_ICONS: Record<string, string> = {
   badge: "🏅",
-  "print-finished": "🎉",
-  "print-failed": "⚠️",
 };
 
 export default function NotificationBell({

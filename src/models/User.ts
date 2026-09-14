@@ -8,24 +8,6 @@ const EarnedBadgeSchema = new Schema(
   { _id: false }
 );
 
-// Connexion optionnelle au compte cloud Bambu Lab (voir src/lib/bambuCloud.ts) :
-// permet au serveur FilaTrack de parler directement au broker MQTT cloud de
-// Bambu Lab (pause/reprise/arrêt, profil filament AMS, lecture de l'AMS)
-// depuis n'importe où, sans dépendre de l'app desktop ni du réseau local de
-// l'utilisateur. Contrepartie assumée : `accessTokenEnc` est un jeton
-// d'accès à ce compte Bambu, chiffré (jamais en clair, voir
-// secretCrypto.ts) — absent tant que l'utilisateur n'a jamais connecté son
-// compte, ou après une déconnexion volontaire.
-const BambuCloudSchema = new Schema(
-  {
-    email: { type: String, trim: true, lowercase: true },
-    uid: { type: String, trim: true },
-    accessTokenEnc: { type: String },
-    connectedAt: { type: Date },
-  },
-  { _id: false }
-);
-
 const UserSchema = new Schema(
   {
     // Identifiant fixé à l'inscription, affiché en "@name" un peu partout :
@@ -57,19 +39,12 @@ const UserSchema = new Schema(
     // communauté) — une mise en avant, distincte de la liste complète des
     // badges gagnés dans `badges`.
     showcaseBadges: { type: [String], default: [] },
-    // Hash SHA-256 (déterministe, donc indexable pour une recherche O(1) —
-    // contrairement à bcrypt) de la clé API utilisée par l'app desktop
-    // (pont MQTT Bambu Lab) pour synchroniser automatiquement le poids
-    // restant des bobines. La clé en clair n'est jamais stockée, seulement
-    // montrée une fois au moment de sa génération.
-    apiKeyHash: { type: String, index: true, unique: true, sparse: true },
     // Jeton d'un lien public en lecture seule vers l'inventaire (voir
     // /share/[token] et src/app/actions/sharing.ts) — absent tant que le
     // partage n'a jamais été activé. `sparse` pour que plusieurs comptes
     // sans partage actif (valeur absente) ne se percutent pas sur l'index
     // unique.
     shareToken: { type: String, index: true, unique: true, sparse: true },
-    bambuCloud: { type: BambuCloudSchema },
   },
   { timestamps: true }
 );

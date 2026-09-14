@@ -144,12 +144,6 @@ const ICONS: Record<BadgeId, ReactNode> = {
       />
     </svg>
   ),
-  automatise: (
-    <OutlineSvg>
-      <rect x="7" y="7" width="10" height="10" rx="1.5" />
-      <path d="M9 3v4M12 3v4M15 3v4M9 21v-4M12 21v-4M15 21v-4M3 9h4M3 12h4M3 15h4M21 9h-4M21 12h-4M21 15h-4" />
-    </OutlineSvg>
-  ),
 };
 
 export default function BadgeIcon({ id, className }: { id: BadgeId; className?: string }) {

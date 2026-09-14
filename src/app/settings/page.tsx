@@ -6,10 +6,8 @@ import { getOrigin } from "@/lib/origin";
 import { User, type UserDoc } from "@/models/User";
 import ProfileForm from "@/components/ProfileForm";
 import PasswordForm from "@/components/PasswordForm";
-import ApiKeySection from "@/components/ApiKeySection";
 import BadgeShowcaseForm from "@/components/BadgeShowcaseForm";
 import ShareSettings from "@/components/ShareSettings";
-import BambuCloudSection from "@/components/BambuCloudSection";
 
 export const dynamic = "force-dynamic";
 
@@ -62,20 +60,6 @@ export default async function SettingsPage() {
             earnedIds={(user.badges ?? []).map((b) => b.id)}
             initialShowcase={user.showcaseBadges ?? []}
           />
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Clé API (app desktop)</h2>
-        <div className="mt-4">
-          <ApiKeySection hasKey={!!user.apiKeyHash} />
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-6">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Compte Bambu Lab (cloud)</h2>
-        <div className="mt-4">
-          <BambuCloudSection connectedEmail={user.bambuCloud?.email ?? undefined} />
         </div>
       </section>
 

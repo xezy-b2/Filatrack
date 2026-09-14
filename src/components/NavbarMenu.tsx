@@ -15,7 +15,6 @@ import type { NotificationView } from "@/app/actions/notifications";
 const LINKS = [
   { href: "/dashboard", label: "Mon inventaire" },
   { href: "/community", label: "Communauté" },
-  { href: "/dashboard/printer", label: "Imprimante" },
   { href: "/dashboard/filaments", label: "Filaments" },
 ];
 
@@ -86,7 +85,7 @@ export default function NavbarMenu({
         </button>
       </form>
 
-      {/* En dessous de md : le reste (inventaire, communauté, imprimante,
+      {/* En dessous de md : le reste (inventaire, communauté, filaments,
           profil, réglages, déconnexion) se replie dans ce menu burger. */}
       <button
         type="button"

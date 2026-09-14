@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 // Page publique, volontairement SANS vérification `auth()` : c'est tout
 // l'intérêt du lien de partage (voir src/app/actions/sharing.ts). On ne
 // sélectionne jamais que les mêmes champs "sûrs" que la fiche communauté
-// (jamais email/passwordHash/apiKeyHash/shareToken).
+// (jamais email/passwordHash/shareToken).
 export default async function PublicSharePage(props: PageProps<"/share/[token]">) {
   const { token } = await props.params;
 

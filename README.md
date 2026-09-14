@@ -5,7 +5,7 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
 ## Fonctionnalités
 
 - **Comptes utilisateurs** : inscription / connexion par email + mot de passe (NextAuth v5, mots de passe hashés avec bcrypt). Le nom choisi à l'inscription reste l'identifiant fixe du compte (affiché en petit sous la forme `@nom`) ; un **pseudo** optionnel, modifiable à tout moment sur `/settings`, prend le dessus pour l'affichage principal partout sur le site quand il est renseigné (voir `src/lib/displayName.ts`).
-- **Profil** (`/profile`) : vraie page de présentation (avatar, pseudo, badges mis en avant, imprimante, date d'inscription, badges débloqués) — ce que voient les autres membres de la communauté. Les réglages du compte (photo de profil, pseudo, imprimante, badges mis en avant, clé API, mot de passe) se gèrent séparément sur **Paramètres** (`/settings`).
+- **Profil** (`/profile`) : vraie page de présentation (avatar, pseudo, badges mis en avant, imprimante, date d'inscription, badges débloqués) — ce que voient les autres membres de la communauté. Les réglages du compte (photo de profil, pseudo, imprimante, badges mis en avant, mot de passe) se gèrent séparément sur **Paramètres** (`/settings`).
 - **Inventaire personnel** : chaque compte gère ses propres bobines, invisibles/non modifiables par les autres.
 - **Communauté** : page listant tous les comptes créés, avec un aperçu (nombre de bobines, stock restant, alertes) et une fiche détaillée en lecture seule pour chaque membre, avec deux onglets : **Ses bobines** (inventaire) et **Profil** (badges, imprimante, date d'inscription).
 - **Suivi détaillé par bobine** :
@@ -21,16 +21,10 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
 - **Tableau de bord** avec statistiques (bobines actives, kilos restants, nombre de bobines en stock bas, valeur totale du stock), et **recherche + filtres** (texte libre, matière, statut, stock bas uniquement) et **tri** (poids restant, couleur, ajout récent) sur la liste des bobines.
 - **QR code par bobine** : chaque fiche bobine (`/dashboard/spools/[id]`) génère un QR code à imprimer et coller sur la bobine, qui pointe directement vers sa fiche — pratique pour la retrouver depuis son téléphone. Si on scanne le code sans être connecté, on est redirigé vers la connexion puis renvoyé automatiquement sur la bonne fiche.
 - **Badges** (`/profile`, et visibles dans l'onglet Profil de chaque membre en communauté) : une quinzaine d'achievements débloqués au fil de l'usage (première bobine, kilos imprimés, matières variées, bobine vidée jusqu'au bout, ancienneté du compte...), plus un badge **"OG"** réservé aux comptes créés avant le 15 septembre 2026 (plus personne ne peut l'obtenir après cette date), et un badge **"Fondateur"** réservé au compte du créateur du site (identifié par email dans `FOUNDER_EMAIL`, `src/lib/badgeDefs.ts`) — personne d'autre ne peut l'obtenir, quoi qu'il fasse. Une fois gagné, un badge n'est jamais retiré. Jusqu'à 3 badges peuvent être mis en avant sous le pseudo (à choisir sur `/settings`).
-- **Notifications** (icône 🔔 dans la barre de navigation) : un badge de fin d'impression (réussie ou échouée) et un badge débloqué génèrent chacun une notification, listées par ordre chronologique avec un compteur de non-lues. Chaque notification a un bouton "×" pour la supprimer individuellement, et un lien "Tout effacer" vide la liste d'un coup. "Aucune notification." s'affiche quand la liste est vide. Pas de push temps réel : le panneau se rafraîchit tout seul en arrière-plan toutes les 30 secondes.
-- **Synchro automatique AMS (Bambu Lab)** : voir `/dashboard/printer` — permet, via l'app desktop (pont MQTT local vers l'imprimante), de mettre à jour tout seul le poids restant des bobines chargées dans l'AMS après chaque impression, sans logging manuel, et de faire remonter le statut d'impression en cours. Authentifié par clé API personnelle (générable/révocable sur `/settings`) plutôt que par la session du site, puisque la synchro provient d'un programme local et non d'un navigateur.
-- **Auto-remplissage RFID** : les bobines Bambu Lab officielles ont une puce RFID lue automatiquement par l'AMS (matière + couleur). Quand un slot contient une bobine détectée par l'AMS mais non encore associée à une fiche FilaTrack, une suggestion apparaît sur `/dashboard/printer` avec un lien "Créer cette bobine" qui pré-remplit le formulaire (matière et couleur) pour éviter de les ressaisir à la main.
-- **Aperçu visuel de l'AMS** (`/dashboard/printer`) : les 4 slots de l'AMS affichés en un coup d'œil (couleur, matière, % restant, bobine associée ou détection RFID en attente) plutôt qu'une simple liste déroulante — reflète ce qui est physiquement chargé au moment de la dernière synchro.
-- **Suivi et contrôle de l'impression en cours** (`/dashboard/printer`) : tant qu'une impression tourne ou est en pause, un bandeau affiche l'avancement (%), le fichier et le temps restant, avec des boutons **Pause / Reprendre / Arrêter**. La commande est déposée côté site puis récupérée par l'app desktop (sondage toutes les ~8 secondes) qui la transmet à l'imprimante en MQTT — un délai de quelques secondes entre le clic et l'exécution est donc normal. Il n'y a pas de bouton "démarrer une nouvelle impression" : cela demanderait de parcourir les fichiers stockés sur l'imprimante elle-même, hors du périmètre de FilaTrack.
-- **Aperçu et pilotage de l'AMS** (`/dashboard/printer`) : les slots de l'AMS affichés en un coup d'œil (couleur, matière, % restant, bobine associée ou détection RFID en attente), avec un bouton **"Envoyer"** par slot pour déclarer directement sur l'AMS le profil filament générique correspondant (PLA, PETG, ABS...) — même mécanisme de commande différée que Pause/Reprendre/Arrêter, voir [API de commande imprimante](#api-de-commande-imprimante-get-apiprinter-synccommand) ci-dessous.
+- **Notifications** (icône 🔔 dans la barre de navigation) : un badge débloqué génère une notification, listées par ordre chronologique avec un compteur de non-lues. Chaque notification a un bouton "×" pour la supprimer individuellement, et un lien "Tout effacer" vide la liste d'un coup. "Aucune notification." s'affiche quand la liste est vide. Pas de push temps réel : le panneau se rafraîchit tout seul en arrière-plan toutes les 30 secondes.
 - **Installable sur mobile (PWA)** : FilaTrack peut s'ajouter à l'écran d'accueil du téléphone (icône dédiée, ouverture en plein écran sans barre d'adresse), sans passer par l'App Store ni le Play Store — voir [Installer FilaTrack sur mobile](#installer-filatrack-sur-mobile) ci-dessous.
 - **Catalogue Filaments** (`/dashboard/filaments`) : catalogue de référence de ~13 900 filaments réels chez 73 marques (matière, couleur, poids, image), avec recherche et filtres par matière/marque. Il n'y a pas de prix ni de paiement sur FilaTrack : chaque fiche a un bouton "Rechercher un vendeur" (recherche pré-remplie, pas un lien produit précis puisque cette donnée n'est pas disponible dans la source) et un bouton "Ajouter à mon inventaire" qui pré-remplit le formulaire d'ajout de bobine — voir [Catalogue Filaments](#catalogue-filaments) ci-dessous.
 - **Partage public de l'inventaire** (`/settings`) : génère un lien public en lecture seule (`/share/[token]`) pour montrer son inventaire à quelqu'un sans qu'il ait besoin de créer un compte. Désactivé par défaut, révocable et régénérable à tout moment — voir [Partage public](#partage-public) ci-dessous.
-- **Connexion au compte cloud Bambu Lab** (`/settings`, optionnelle) : en plus du mode LAN local (via l'app desktop), FilaTrack peut parler directement au cloud Bambu Lab pour piloter l'imprimante et lire l'AMS depuis n'importe où, sans dépendre d'un ordinateur allumé sur le réseau de l'utilisateur — voir [Connexion au compte cloud Bambu Lab](#connexion-au-compte-cloud-bambu-lab-optionnel) ci-dessous.
 
 ## Installer FilaTrack sur mobile
 
@@ -66,8 +60,8 @@ Ce script lit `data/filament-catalog.json` (déjà dans le dépôt) et l'importe
 Depuis **Paramètres** (`/settings`), n'importe quel compte peut activer un lien public de la forme `https://.../share/<jeton>` qui affiche son inventaire (bobines actives, badges mis en avant, imprimante) en lecture seule, **sans connexion requise** — pratique pour montrer sa liste à quelqu'un hors de l'appli (un ami qui veut te prêter/racheter du filament, par exemple) sans lui faire créer de compte.
 
 - **Désactivé par défaut** : le champ `shareToken` (`src/models/User.ts`) est absent tant que le partage n'a jamais été activé ; aucune donnée n'est exposée avant ce premier clic.
-- Le jeton est une chaîne aléatoire de 16 octets (`crypto.randomBytes(16)`, `src/app/actions/sharing.ts`) stockée **en clair** (contrairement à la clé API) : le modèle de sécurité est celui d'un lien de partage façon Google Docs — sa confidentialité tient au fait qu'il n'est connu que de qui le reçoit, pas à un hash. **Toute personne qui a le lien peut le voir**, c'est pourquoi le bouton "Régénérer le lien" invalide l'ancien immédiatement (utile si le lien a été partagé par erreur), et "Désactiver le partage" le supprime complètement.
-- La page publique (`src/app/share/[token]/page.tsx`) ne sélectionne jamais que les mêmes champs "sûrs" que la fiche communauté existante (nom, pseudo, avatar, imprimante, badges) — jamais l'email, le hash de mot de passe ou la clé API. Les bobines archivées ne sont pas affichées.
+- Le jeton est une chaîne aléatoire de 16 octets (`crypto.randomBytes(16)`, `src/app/actions/sharing.ts`) stockée **en clair** : le modèle de sécurité est celui d'un lien de partage façon Google Docs — sa confidentialité tient au fait qu'il n'est connu que de qui le reçoit, pas à un hash. **Toute personne qui a le lien peut le voir**, c'est pourquoi le bouton "Régénérer le lien" invalide l'ancien immédiatement (utile si le lien a été partagé par erreur), et "Désactiver le partage" le supprime complètement.
+- La page publique (`src/app/share/[token]/page.tsx`) ne sélectionne jamais que les mêmes champs "sûrs" que la fiche communauté existante (nom, pseudo, avatar, imprimante, badges) — jamais l'email ni le hash de mot de passe. Les bobines archivées ne sont pas affichées.
 - La route `/share/:path*` est volontairement absente du matcher de `src/proxy.ts` : c'est la seule zone du site accessible sans session.
 
 ## Stack technique
@@ -109,7 +103,6 @@ cp .env.example .env.local
   openssl rand -base64 32
   ```
 - `NEXTAUTH_URL` : `http://localhost:3000` en local, ou l'URL publique de ton déploiement en production.
-- `BAMBU_TOKEN_SECRET` : uniquement si tu utilises la connexion au compte cloud Bambu Lab (voir [Connexion au compte cloud Bambu Lab](#connexion-au-compte-cloud-bambu-lab-optionnel) plus bas) — même commande que `AUTH_SECRET` pour en générer un.
 
 ### 4. Lancer le serveur de développement
 
@@ -153,84 +146,23 @@ Si tu utilises Atlas, dans **Network Access**, autorise les connexions depuis `0
 ```
 src/
   app/
-    actions/        # Server Actions (inscription, connexion, CRUD bobines, imprimante, notifications...)
+    actions/        # Server Actions (inscription, connexion, CRUD bobines, notifications...)
     api/auth/        # Route NextAuth
-    api/printer-sync/# Endpoints appelés par l'app desktop (synchro AMS + commandes pause/reprise/arrêt)
-    dashboard/       # Inventaire personnel + formulaires + page Imprimante
+    dashboard/       # Inventaire personnel + formulaires
     community/       # Annuaire des membres + vue lecture seule
     profile/         # Page de profil (vue, lecture seule)
     settings/        # Réglages du compte (formulaires)
     login/ register/ # Pages d'authentification
   components/        # Composants UI réutilisables
   lib/                # Connexion MongoDB, constantes, types, sérialisation, badges, notifications
-  models/             # Schémas Mongoose (User, Spool, Printer, Notification)
+  models/             # Schémas Mongoose (User, Spool, Notification)
   auth.ts             # Configuration NextAuth v5
   proxy.ts            # Protection des routes privées (ex-middleware)
 ```
-
-## API de synchro imprimante (`POST /api/printer-sync`)
-
-Utilisée par l'app desktop (pont MQTT local vers la P2S), jamais par un navigateur. Authentification par clé API (générée sur `/settings`) plutôt que par session :
-
-```
-POST /api/printer-sync
-Authorization: Bearer <clé API>
-Content-Type: application/json
-
-{
-  "deviceId": "<numéro de série de l'imprimante>",
-  "slots": [
-    { "index": 0, "remainPercent": 87.4, "trayType": "PLA", "trayColor": "1A8CFFFF" },
-    { "index": 1, "remainPercent": 42.0 }
-  ],
-  "printStatus": {
-    "state": "running",
-    "progress": 63.5,
-    "fileName": "benchy.3mf",
-    "remainingMinutes": 42
-  }
-}
-```
-
-Le serveur ne journalise une utilisation que si `remainPercent` a baissé depuis le dernier appel connu pour ce slot (une valeur qui remonte indique un changement physique de bobine, pas un usage), et seulement pour les slots associés à une bobine via `/dashboard/printer`.
-
-`trayType` et `trayColor` sont optionnels : ce sont les infos matière/couleur lues par la puce RFID des bobines Bambu Lab officielles (champs `tray_type`/`tray_color` du rapport MQTT de l'AMS). Elles sont enregistrées sur le slot même s'il n'est associé à aucune bobine, pour alimenter les suggestions d'auto-remplissage sur `/dashboard/printer`.
-
-`printStatus` est optionnel et purement informatif (affiché sur `/dashboard/printer` tant que `state` vaut `running` ou `paused`) : il n'a aucune influence sur le calcul du poids restant, qui repose uniquement sur `slots`. `state` vaut `idle`, `running`, `paused`, `finished` ou `failed`. Un passage à `finished` ou `failed` déclenche une notification pour l'utilisateur.
-
-## API de commande imprimante (`GET /api/printer-sync/command`)
-
-Sondée par l'app desktop toutes les ~8 secondes (pendant qu'elle est connectée en MQTT à l'imprimante) pour savoir si une commande a été demandée depuis le site (`/dashboard/printer`) :
-
-```
-GET /api/printer-sync/command?deviceId=<numéro de série>
-Authorization: Bearer <clé API>
-```
-
-Réponse : `{ "command": null }`, ou `{ "command": { "type": "pause" | "resume" | "stop" } }` (boutons de contrôle d'impression), ou `{ "command": { "type": "set-filament", "amsId", "trayId", "trayInfoIdx", "trayType", "trayColor", "nozzleTempMin", "nozzleTempMax" } }` (bouton "Envoyer" sur un slot de l'aperçu AMS, voir ci-dessous). La commande est retirée (consommée) dès qu'elle est renvoyée par cet endpoint — au pire une commande peut être perdue si l'app desktop plante juste après l'avoir récupérée, ce qui est un compromis acceptable pour cet usage. C'est l'app desktop, et elle seule, qui traduit ensuite la commande en MQTT vers l'imprimante : le site ne peut pas la joindre directement (réseau local de l'utilisateur, non routable depuis son hébergement).
-
-### Envoyer un profil filament générique vers l'AMS
-
-Sur chaque slot de l'aperçu AMS (`/dashboard/printer`), un sélecteur + bouton "Envoyer" dépose une commande `set-filament` : l'app desktop la traduit en commande MQTT Bambu `ams_filament_setting` (équivalent de choisir un profil filament générique sur l'écran de l'imprimante ou dans Bambu Handy). Les codes de profil (`trayInfoIdx`, ex: `GFL99` pour "Generic PLA") viennent de `src/lib/bambuFilamentProfiles.ts` — une table tenue à la main à partir de la documentation communautaire du protocole Bambu Lab (pas une doc officielle), volontairement limitée aux matières dont le code générique est confirmé (PLA, PLA-CF, PETG, ABS, ASA, TPU, PA, PA-CF, PC, PVA). `trayColor` (format `RRGGBBAA`) reprend la couleur de la bobine FilaTrack associée au slot quand il y en a une. Cette commande nécessite la version de l'app desktop qui sait l'interpréter (voir `LISEZ-MOI.md` du projet desktop) — contrairement au site, l'app desktop ne se met pas à jour toute seule.
-
-## Connexion au compte cloud Bambu Lab (optionnel)
-
-Le mode LAN (app desktop) exige d'être sur le même réseau que l'imprimante — inutilisable en déplacement. En alternative, `/settings` permet de connecter son compte Bambu Lab : le serveur FilaTrack parle alors directement au broker MQTT cloud de Bambu (`us.mqtt.bambulab.com`), exactement comme le fait Bambu Handy, depuis n'importe où.
-
-**Connexion** (`src/app/actions/bambuCloud.ts`, `src/lib/bambuCloud.ts`) : un email suffit — FilaTrack envoie un code de vérification via l'API Bambu Lab (`POST /v1/user-service/user/sendemail/code`), puis échange ce code contre un jeton d'accès (`POST /v1/user-service/user/login`). Le mot de passe du compte Bambu n'est jamais demandé. Le jeton est chiffré (AES-256-GCM, voir `src/lib/secretCrypto.ts`) avant d'être stocké sur le compte utilisateur — il faut donc définir `BAMBU_TOKEN_SECRET` (voir plus haut) pour utiliser cette fonctionnalité. La double authentification (TFA) sur le compte Bambu n'est pas gérée : un compte avec TFA activé ne peut pas se connecter par ce biais.
-
-**Effet une fois connecté** : les actions `sendPrinterCommand` et `sendSetFilamentCommand` (`src/app/actions/printer.ts`) envoient la commande directement au cloud Bambu et attendent la confirmation, au lieu de la déposer en attente pour l'app desktop — plus de délai de polling, et ça fonctionne sans app desktop ni réseau local. Un bouton **"☁️ Actualiser depuis le cloud"** apparaît aussi sur `/dashboard/printer`, à côté de l'aperçu AMS, pour lire ponctuellement l'état de l'imprimante (slots + impression en cours) via le cloud plutôt que d'attendre la prochaine synchro de l'app desktop.
-
-Ce chemin est indépendant du mode LAN : les deux peuvent coexister, et rien n'empêche de garder l'app desktop pour la synchro automatique en continu (calcul du poids restant) tout en utilisant le cloud ponctuellement en déplacement.
-
-⚠️ Contrepartie assumée : contrairement au reste de FilaTrack (conçu pour ne jamais transiter par un tiers), cette fonctionnalité fait passer les commandes — et un jeton d'accès au compte Bambu Lab de l'utilisateur — par les serveurs de Bambu Lab. Elle est désactivée par défaut (opt-in) et se déconnecte à tout moment depuis `/settings`. Comme pour le mode LAN, les endpoints utilisés viennent de la documentation communautaire (reverse engineering), pas d'une doc officielle Bambu Lab, et n'ont pas été testés à grande échelle.
 
 ## Notes de sécurité
 
 - Les mots de passe sont hashés avec bcrypt (jamais stockés en clair).
 - Toute mutation (créer/modifier/supprimer une bobine) vérifie côté serveur que l'utilisateur connecté est bien le propriétaire de la bobine.
 - Les inventaires des autres membres ne sont accessibles qu'en lecture (aucune route ne permet de modifier les bobines d'un autre compte).
-- La clé API (synchro imprimante) n'est jamais stockée en clair côté serveur : seul un hash SHA-256 est conservé, et la clé n'est affichée qu'une fois, au moment de sa génération.
-- Le code d'accès LAN de l'imprimante ne transite jamais par ce site : il reste uniquement dans la configuration locale de l'app desktop, utilisé pour la connexion MQTT directe au réseau local.
 - Le lien de partage public (`/share/[token]`) est désactivé par défaut, ne montre jamais l'email ni les informations sensibles du compte, et peut être révoqué ou régénéré à tout moment depuis `/settings` (voir [Partage public](#partage-public) ci-dessus).
-- Le jeton d'accès au compte cloud Bambu Lab (connexion optionnelle, voir [Connexion au compte cloud Bambu Lab](#connexion-au-compte-cloud-bambu-lab-optionnel) ci-dessus) est chiffré au repos (AES-256-GCM) et n'est déchiffré côté serveur qu'au moment précis d'envoyer une commande ou de lire l'AMS — jamais renvoyé au navigateur.
