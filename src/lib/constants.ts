@@ -1,5 +1,6 @@
 export const MATERIALS = [
   "PLA",
+  "PLA Matte",
   "PLA-CF",
   "PETG",
   "PETG-CF",
@@ -42,6 +43,9 @@ export const LOCATIONS = [
 // suggérées dans le formulaire (l'utilisateur peut toujours les modifier).
 export const DEFAULT_TEMPS: Record<Material, { nozzleMin: number; nozzleMax: number; bedMin: number; bedMax: number }> = {
   PLA: { nozzleMin: 190, nozzleMax: 220, bedMin: 45, bedMax: 60 },
+  // Même base PLA, mais l'additif matifiant change la plage usuelle
+  // (bed plus bas que le PLA classique chez la plupart des marques).
+  "PLA Matte": { nozzleMin: 190, nozzleMax: 230, bedMin: 35, bedMax: 45 },
   "PLA-CF": { nozzleMin: 200, nozzleMax: 230, bedMin: 45, bedMax: 60 },
   PETG: { nozzleMin: 230, nozzleMax: 250, bedMin: 70, bedMax: 80 },
   "PETG-CF": { nozzleMin: 240, nozzleMax: 260, bedMin: 70, bedMax: 80 },

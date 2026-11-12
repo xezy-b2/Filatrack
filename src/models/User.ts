@@ -27,6 +27,14 @@ const UserSchema = new Schema(
       trim: true,
     },
     passwordHash: { type: String, required: true },
+    // Réinitialisation de mot de passe (voir src/app/actions/auth.ts et
+    // src/lib/rateLimit.ts) : on ne stocke jamais le jeton en clair, seulement
+    // son hash SHA-256 (comme l'ex-apiKeyHash) — un accès en lecture à la base
+    // ne permet donc pas de générer un lien de réinitialisation valide.
+    // `select: false` pour ne jamais les renvoyer par mégarde sur une requête
+    // sans `.select()` explicite.
+    resetTokenHash: { type: String, select: false, index: true },
+    resetTokenExpires: { type: Date, select: false },
     // Image encodée en base64 (data URI), redimensionnée côté client avant envoi.
     avatar: { type: String },
     printerModel: { type: String, trim: true, maxlength: 60 },

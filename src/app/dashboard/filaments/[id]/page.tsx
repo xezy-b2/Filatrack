@@ -52,7 +52,7 @@ export default async function FilamentDetailPage(props: PageProps<"/dashboard/fi
   const finish = detectFinish(item.title, item.material);
   const recycled = detectRecycled(item.title, item.material);
   const brandUrl = getBrandWebsite(item.brand);
-  const temps = estimatedPrintTemps(item.material);
+  const temps = estimatedPrintTemps(item.material, item.title);
   const vendorLink = getVendorLink(item);
   const addHref = buildAddToInventoryHref(item);
 

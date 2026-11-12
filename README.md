@@ -4,7 +4,7 @@ Application de suivi du stock de filaments pour imprimante 3D (pensée pour une 
 
 ## Fonctionnalités
 
-- **Comptes utilisateurs** : inscription / connexion par email + mot de passe (NextAuth v5, mots de passe hashés avec bcrypt). Le nom choisi à l'inscription reste l'identifiant fixe du compte (affiché en petit sous la forme `@nom`) ; un **pseudo** optionnel, modifiable à tout moment sur `/settings`, prend le dessus pour l'affichage principal partout sur le site quand il est renseigné (voir `src/lib/displayName.ts`).
+- **Comptes utilisateurs** : inscription / connexion par email + mot de passe (NextAuth v5, mots de passe hashés avec bcrypt). Le nom choisi à l'inscription reste l'identifiant fixe du compte (affiché en petit sous la forme `@nom`) ; un **pseudo** optionnel, modifiable à tout moment sur `/settings`, prend le dessus pour l'affichage principal partout sur le site quand il est renseigné (voir `src/lib/displayName.ts`). **Mot de passe oublié** (`/forgot-password`) : envoie un lien de réinitialisation valable 1h par email (voir [Emails](#emails) ci-dessous). La connexion est aussi protégée par un **rate limiting** anti brute-force : après 5 tentatives échouées (par email ciblé ou par IP), les connexions suivantes sont bloquées 15 minutes (voir `src/lib/rateLimit.ts`).
 - **Profil** (`/profile`) : vraie page de présentation (avatar, pseudo, badges mis en avant, imprimante, date d'inscription, badges débloqués) — ce que voient les autres membres de la communauté. Les réglages du compte (photo de profil, pseudo, imprimante, badges mis en avant, mot de passe) se gèrent séparément sur **Paramètres** (`/settings`).
 - **Inventaire personnel** : chaque compte gère ses propres bobines, invisibles/non modifiables par les autres.
 - **Communauté** : page listant tous les comptes créés, avec un aperçu (nombre de bobines, stock restant, alertes) et une fiche détaillée en lecture seule pour chaque membre, avec deux onglets : **Ses bobines** (inventaire) et **Profil** (badges, imprimante, date d'inscription).
@@ -64,6 +64,14 @@ Depuis **Paramètres** (`/settings`), n'importe quel compte peut activer un lien
 - La page publique (`src/app/share/[token]/page.tsx`) ne sélectionne jamais que les mêmes champs "sûrs" que la fiche communauté existante (nom, pseudo, avatar, imprimante, badges) — jamais l'email ni le hash de mot de passe. Les bobines archivées ne sont pas affichées.
 - La route `/share/:path*` est volontairement absente du matcher de `src/proxy.ts` : c'est la seule zone du site accessible sans session.
 
+## Emails
+
+FilaTrack envoie un seul type d'email pour l'instant : le lien de réinitialisation de mot de passe (`/forgot-password`), via [Resend](https://resend.com) (`src/lib/mail.ts`).
+
+- **En développement, `RESEND_API_KEY` peut rester vide** : le lien de réinitialisation est alors simplement affiché dans les logs du serveur (`npm run dev`) au lieu d'être envoyé par email, ce qui permet de tester tout le parcours sans créer de compte Resend.
+- **En production**, crée un compte Resend gratuit, récupère une clé API et renseigne `RESEND_API_KEY` (et éventuellement `EMAIL_FROM` avec un domaine vérifié sur Resend — sinon l'adresse de test `onboarding@resend.dev` est utilisée, avec les limitations de l'offre gratuite de Resend).
+- Le jeton de réinitialisation n'est jamais stocké en clair : seul son hash SHA-256 est enregistré (`resetTokenHash`/`resetTokenExpires` sur `User`, `select: false`), il expire au bout d'1h, et le message affiché après une demande est **volontairement identique que le compte existe ou non** (pas d'énumération d'emails). Les demandes répétées sont aussi limitées (voir rate limiting ci-dessus).
+
 ## Stack technique
 
 - [Next.js 16](https://nextjs.org/) (App Router, Server Components, Server Actions) + TypeScript
@@ -103,6 +111,7 @@ cp .env.example .env.local
   openssl rand -base64 32
   ```
 - `NEXTAUTH_URL` : `http://localhost:3000` en local, ou l'URL publique de ton déploiement en production.
+- `RESEND_API_KEY` / `EMAIL_FROM` : facultatifs en local (voir [Emails](#emails) ci-dessous) — nécessaires en production pour que l'email de réinitialisation de mot de passe parte vraiment.
 
 ### 4. Lancer le serveur de développement
 
@@ -126,7 +135,7 @@ node scripts/seed-filament-catalog.mjs
 
 1. Crée un nouveau projet sur [Railway](https://railway.app/) et connecte ce dépôt GitHub.
 2. Railway détecte automatiquement le projet Next.js (Nixpacks) grâce au `railway.json` fourni.
-3. Ajoute les variables d'environnement dans l'onglet **Variables** du service : `MONGODB_URI`, `AUTH_SECRET`, `NEXTAUTH_URL` (l'URL publique générée par Railway, ex : `https://filatrack-production.up.railway.app`).
+3. Ajoute les variables d'environnement dans l'onglet **Variables** du service : `MONGODB_URI`, `AUTH_SECRET`, `NEXTAUTH_URL` (l'URL publique générée par Railway, ex : `https://filatrack-production.up.railway.app`), et `RESEND_API_KEY`/`EMAIL_FROM` pour que l'email de réinitialisation de mot de passe soit envoyé (voir [Emails](#emails)).
 4. Optionnel : Railway propose aussi un plugin MongoDB si tu préfères héberger la base directement là-bas plutôt que sur Atlas.
 5. Déploie — Railway build et démarre automatiquement (`npm run build` puis `npm run start`).
 
@@ -153,9 +162,10 @@ src/
     profile/         # Page de profil (vue, lecture seule)
     settings/        # Réglages du compte (formulaires)
     login/ register/ # Pages d'authentification
+    forgot-password/ reset-password/[token]/ # Réinitialisation de mot de passe
   components/        # Composants UI réutilisables
-  lib/                # Connexion MongoDB, constantes, types, sérialisation, badges, notifications
-  models/             # Schémas Mongoose (User, Spool, Notification)
+  lib/                # Connexion MongoDB, constantes, types, sérialisation, badges, notifications, emails, rate limiting
+  models/             # Schémas Mongoose (User, Spool, Notification, LoginAttempt)
   auth.ts             # Configuration NextAuth v5
   proxy.ts            # Protection des routes privées (ex-middleware)
 ```
@@ -163,6 +173,7 @@ src/
 ## Notes de sécurité
 
 - Les mots de passe sont hashés avec bcrypt (jamais stockés en clair).
+- Les tentatives de connexion sont limitées (5 échecs → blocage 15 minutes, par email et par IP) pour freiner le brute-force ; les jetons de réinitialisation de mot de passe ne sont jamais stockés en clair (hash SHA-256, expiration 1h) et les demandes de réinitialisation sont elles aussi limitées (voir [Emails](#emails)).
 - Toute mutation (créer/modifier/supprimer une bobine) vérifie côté serveur que l'utilisateur connecté est bien le propriétaire de la bobine.
 - Les inventaires des autres membres ne sont accessibles qu'en lecture (aucune route ne permet de modifier les bobines d'un autre compte).
 - Le lien de partage public (`/share/[token]`) est désactivé par défaut, ne montre jamais l'email ni les informations sensibles du compte, et peut être révoqué ou régénéré à tout moment depuis `/settings` (voir [Partage public](#partage-public) ci-dessus).

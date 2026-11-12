@@ -12,6 +12,7 @@ export default async function LoginPage({
   const params = await searchParams;
   const rawCallbackUrl = typeof params.callbackUrl === "string" ? params.callbackUrl : undefined;
   const callbackUrl = await getSafeCallbackPath(rawCallbackUrl);
+  const justReset = params.reset === "success";
 
   const session = await auth();
   if (session?.user) {
@@ -25,6 +26,11 @@ export default async function LoginPage({
         <p className="mt-1 text-sm text-slate-500">
           Suis le stock de filaments de ta P2S.
         </p>
+        {justReset && (
+          <p className="mt-4 rounded-lg bg-emerald-50 dark:bg-emerald-950 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+            Mot de passe modifié, tu peux te reconnecter.
+          </p>
+        )}
         <div className="mt-6">
           <LoginForm callbackUrl={callbackUrl} />
         </div>

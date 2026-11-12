@@ -59,9 +59,16 @@ const MATERIAL_ALIASES: Record<string, Material> = {
   HIPS: "HIPS",
 };
 
-export function mapCatalogMaterialToAppMaterial(raw: string): Material {
+// `title`, quand il est fourni, affine le PLA en "PLA Matte" si le titre du
+// produit mentionne une finition mate (ex: "PLA - Soft Lavender Matte") —
+// la source ne distingue jamais ça au niveau de la colonne "matière" elle-même
+// (voir detectFinish plus bas, qui fait la même détection pour l'affichage).
+export function mapCatalogMaterialToAppMaterial(raw: string, title?: string): Material {
   const mapped = MATERIAL_ALIASES[raw];
   if (mapped && MATERIALS.includes(mapped)) {
+    if (mapped === "PLA" && title && detectFinish(title, raw) === "Mat") {
+      return "PLA Matte";
+    }
     return mapped;
   }
   return "Autre";
@@ -187,8 +194,8 @@ export function getBrandWebsite(brand: string): string | undefined {
 // Ce n'est PAS une valeur par produit : deux "PLA Silk" de marques
 // différentes peuvent avoir des plages différentes, d'où le libellé
 // "indicatif" affiché à chaque usage dans l'UI.
-export function estimatedPrintTemps(material: string) {
-  const appMaterial = mapCatalogMaterialToAppMaterial(material);
+export function estimatedPrintTemps(material: string, title?: string) {
+  const appMaterial = mapCatalogMaterialToAppMaterial(material, title);
   return DEFAULT_TEMPS[appMaterial];
 }
 
@@ -404,7 +411,7 @@ export function buildAddToInventoryHref(item: {
 }): string {
   const colorHex = stripAlphaFromHex(item.colorHex8);
   const colorName = deriveColorName(item.title);
-  const appMaterial = mapCatalogMaterialToAppMaterial(item.material);
+  const appMaterial = mapCatalogMaterialToAppMaterial(item.material, item.title);
 
   const params = new URLSearchParams({ source: "catalogue" });
   params.set("brand", item.brand);
